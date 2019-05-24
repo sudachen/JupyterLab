@@ -1,0 +1,55 @@
+version: '2.4'
+services:
+  db:
+    build: ./db
+    container_name: db
+    restart: always
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ${HOME}/JupyterLab/MySql:/var/lib/mysql:Z
+    environment:
+      MYSQL_ROOT_PASSWORD: toor
+      MYSQL_DATABASE: jupyter
+      MYSQL_USER: jupyter
+      MYSQL_PASSWORD: jupyter
+    networks:
+      - local_net
+    command: --character-set-server=utf8mb4
+
+  jupyter:
+    build: ./jupyter
+    depends_on:
+      - db
+    container_name: jupyter
+    hostname: localhost
+    restart: always
+    ports:
+      - "127.0.0.1:8880-8889:8880-8889"
+    volumes:
+      - ${HOME}/.ssh:/home/jupyter/.ssh:ro
+      - ${HOME}/Work:/home/jupyter/work/Work:Z
+      - ${HOME}/Projects:/home/jupyter/work/Projects
+      - ${HOME}/JupyterLab/Jars:/home/jupyter/jars:ro
+      - ${HOME}/JupyterLab/Config/Jars:/home/jupyter/jars2:ro
+    environment:
+      PYPY_GC_MAX: 3GB
+      PYPY_GC_MAJOR_COLLECT: 1.2
+      SHELL: /bin/bash
+      DATABASE_URL: mysql+pymysql://jupyter:jupyter@db:3306/jupyter?charset=utf8
+      GITHUB_ACCESS_TOKEN: None
+    links:
+      - db:db
+    networks:
+      - local_net
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    dns:
+      - 8.8.8.8
+
+networks:
+  local_net:
+    driver: bridge
+

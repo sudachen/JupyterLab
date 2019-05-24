@@ -1,0 +1,155 @@
+#!/bin/bash
+
+JUPYTER_DIR=${HOME}/JupyterLab
+cd ${JUPYTER_DIR}
+
+recovery_password() {
+    read -s -p "Set Recovery Password:" RECOVERY_PASSWORD
+    echo ' X'
+    read -s -p "Repeat:" RECOVERY_PASSWORD_2
+    echo ' X'
+    if [[ "$RECOVERY_PASSWORD" != "$RECOVERY_PASSWORD_2" ]]; then
+        echo "Unmatched"
+        false
+    else
+        true
+    fi
+}
+
+gen_recovery_key() {
+    until recovery_password; do echo 'Try Again...'; done
+    PASS=$(echo $RECOVERY_PASSWORD | openssl sha256 -binary | openssl base64)
+    ssh-keygen -t rsa -q -f Config/keys/RECOVERY -b 4096 -N "$PASS"
+    ssh-keygen -f Config/keys/RECOVERY.pub -e -m pem | openssl rsa -RSAPublicKey_in -pubout > Config/keys/RECOVERY.pem
+    rm Config/keys/RECOVERY.pub
+    mv Config/keys/RECOVERY Config/keys/RECOVERY.rsa
+    git_add keys/RECOVERY.pem keys/RECOVERY.rsa
+}
+
+decrypt_yml() {
+    FINGERPRINT=$(ssh-keygen -f ~/.ssh/id_rsa.pub -e -m pem | openssl rsa -RSAPublicKey_in -pubout -outform DER  | openssl md5 -hex | cut -f 2 -d ' ')	
+    if [ -f Config/keys/$FINGERPRINT.key ]; then
+    PASSCODE=$(openssl base64 -d -in Config/keys/$FINGERPRINT.key | openssl rsautl -decrypt -inkey ~/.ssh/id_rsa)
+    if [ -n $PASSCODE ]; then
+    	if ! openssl enc -d -aes-256-cbc -a -salt -md sha1 -in Config/docker-compose.yml.enc -out Config/docker-compose.yml -pass pass:$PASSCODE; then
+    	    rm Config/docker-compose.yml
+    	    false
+    	fi
+    fi    	
+    else
+    	echo "Your SSH public key did not participate in encryption"
+    	echo "Will try to recover..."
+    	false
+    fi
+}
+
+recover_yml() {
+    read -s -p "Recovery Password:" RECOVERY_PASSWORD
+    echo ' X'
+    PASS=$(echo $RECOVERY_PASSWORD | openssl sha256 -binary | openssl base64)
+    PASSCODE=$(openssl base64 -d -in Config/keys/RECOVERY.key | openssl rsautl -decrypt -inkey Config/keys/RECOVERY.rsa -passin pass:$PASS)
+    if [ -n $PASSCODE ]; then
+    	if ! openssl enc -d -aes-256-cbc -a -salt -md sha1 -in Config/docker-compose.yml.enc -out Config/docker-compose.yml -pass pass:$PASSCODE; then
+    	    rm Config/docker-compose.yml
+    	    false
+    	fi
+    fi
+}
+
+git_add() {
+    wd=$(pwd)
+    cd ${JUPYTER_DIR}/Config
+    git add $*
+    cd $wd
+}
+
+git_commit() {
+    if [ -n "$(git config user.name)" -a -n "$(git config user.email)" ]; then
+        wd=$(pwd)
+        cd ${JUPYTER_DIR}/Config
+        git commit -am updated
+        cd $wd
+    else
+        echo "SUGESSION: setup git user.name and user.email variables!"
+    fi
+}
+
+mkdir -p Config
+
+if [ ! -d Config/.git ]; then
+   git init Config
+   echo docker-compose.yml > Config/.gitignore
+   git_add .
+   git_commit
+   echo "SUGGESTION: setup github repository now and link it with $JUPYTER_DIR/Config dir"
+fi
+
+DOCKERFILE_IN=Dockerfile.in
+if [ -f Config/Dockerfile.in ]
+then
+    DOCKERFILE_IN=Config/Dockerfile.in
+fi
+
+if [ -f Config/Dockerfile.from ] 
+then 
+    cat Config/Dockerfile.from > jupyter/Dockerfile
+    tail -n +2 $DOCKERFILE_IN >> jupyter/Dockerfile
+else 
+    cat $DOCKERFILE_IN > jupyter/Dockerfile
+fi
+
+if [ -f Config/Dockerfile.user ]
+then 
+    cat Config/Dockerfile.user >> jupyter/Dockerfile
+fi
+
+if [ ! -f Config/docker-compose.yml ]; then
+    if [ -f docker-compose.yml.enc ]; then
+	touch docker-compose.yml.enc       
+    fi
+fi
+
+if [ ! -f Config/docker-compose.yml ]; then
+    if [ -f Config/docker-compose.yml.enc ]; then
+ 	if ! decrypt_yml; then
+            recover_yml
+        fi              
+    elif [ -f docker-compose.yml ]; then 
+        mv docker-compose.yml Config/docker-compose.yml
+    else 
+        cp docker-compose.in.yml Config/docker-compose.yml
+    fi
+fi    
+
+if [ ! -f Config/docker-compose.yml.enc -o Config/docker-compose.yml -nt Config/docker-compose.yml.enc  ]; then
+    mkdir -p Config/keys
+    FINGERPRINT=$(ssh-keygen -f ~/.ssh/id_rsa.pub -e -m pem | openssl rsa -RSAPublicKey_in -pubout -outform DER  | openssl md5 -hex | cut -f 2 -d ' ')	
+    if [ ! -f Config/keys/$FINGERPRINT.pem ]; then
+        ssh-keygen -f ~/.ssh/id_rsa.pub -e -m pem | openssl rsa -RSAPublicKey_in -pubout > Config/keys/$FINGERPRINT.pem
+        git_add keys/$FINGERPRINT.pem
+    fi
+    PASSCODE=$(openssl rand -base64 32)
+    if [ ! -f Config/keys/RECOVERY.pem ]; then
+        gen_recovery_key
+    fi
+    for i in Config/keys/*.pem; do
+        Y=${i%.pem}.key
+        echo "$PASSCODE" | openssl rsautl -encrypt -inkey $i -pubin | openssl base64 -out $Y	      
+        git_add ${Y#Config/}
+    done
+    openssl enc -aes-256-cbc -a -salt -md sha1 -in Config/docker-compose.yml -out Config/docker-compose.yml.enc -pass pass:$PASSCODE
+    git_add docker-compose.yml.enc
+    git_commit
+    echo "file docker-compose.yml.enc is updated and commited"
+    echo "SUGGESTION: push Config to github repo"
+fi
+
+docker-compose -f Config/docker-compose.yml --project-directory . down
+
+mkdir -p MySql
+mkdir -p Jars
+mkdir -p Config/Jars
+
+docker-compose -f Config/docker-compose.yml --project-directory . up --build -d
+#docker container prune -f
+#docker image prune -f

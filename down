@@ -1,0 +1,5 @@
+#!/bin/sh
+CONFIG_DIR=${HOME}/JupyterDocker
+
+cd ${CONFIG_DIR}
+docker-compose -f Config/docker-compose.yml --project-directory . down

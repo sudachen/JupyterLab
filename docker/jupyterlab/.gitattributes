@@ -1,0 +1,5 @@
+fix-perimissions text eol=lf
+tini-0.16.1 -text
+precompile text eol=lf
+REQUIRE text eof=lf
+

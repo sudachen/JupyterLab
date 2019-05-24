@@ -1,0 +1,33 @@
+
+CONFIG_DIR=${HOME}/.dstoolbox
+DSTOOLBOX_YAML=${CONFIG_DIR}/docker-compose.yml
+DSTOOLBOX_DOCKERFILE=${CONFIG_DIR}/Dockerfile
+DSTOOLBOX_DOCKERUSER=${CONFIG_DIR}/Dockerfile.user
+DSTOOLBOX_NBCONFIG=${CONFIG_DIR}/jupyter_notebook_config.py
+DSTOOLBOX_KSETUP=${CONFIG_DIR}/setup_kernel.py
+DSTOOLBOX_IMAGE=${IMAGE}
+DSTOOLBOX_OWBNER=${OWNER}
+DSTOOLBOX_REVISION=${REVISION}
+
+config:
+	if [ ! -d ${CONFIG_DIR} ]; then mkdir -p ${CONFIG_DIR}; fi
+	if [ ! -f ${DSTOOLBOX_YAML} ]; then cp docker-compose.in.yml ${DSTOOLBOX_YAML}; fi
+	if [ ! -f ${DSTOOLBOX_DOCKERUSER} ]; \
+	   then if [ -f Dockerfile.user ]; then cp Dockerfile.user ${DSTOOLBOX_DOCKERUSER}; fi; fi
+	if [ ! -f ${DSTOOLBOX_NBCONFIG} ]; then cp jupyter_notebook_config.py ${DSTOOLBOX_NBCONFIG}; fi
+	if [ ! -f ${DSTOOLBOX_KSETUP} ]; then cp setup_kernel.py ${DSTOOLBOX_KSETUP}; fi
+	cp mysql.Dockerfile ${CONFIG_DIR}/
+	cp postgres.Dockerfile ${CONFIG_DIR}/
+	cp Dockerfile.in ${DSTOOLBOX_DOCKERFILE}.in
+	cp up ${CONFIG_DIR}/up
+	cp down ${CONFIG_DIR}/down
+
+up: config down
+	cd ${CONFIG_DIR}; ./up 
+
+run: config down
+	docker build -t ${OWNER}/${IMAGE}:RUN ${CONFIG_DIR}
+	docker run -it -p 8888:8888 ${OWNER}/${IMAGE}:RUN
+
+down:
+	-${CONFIG_DIR}/down

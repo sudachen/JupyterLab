@@ -1,0 +1,33 @@
+
+TAGS_DIR = ../.tags
+
+$(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}:
+	if [ -z "${BASE_IMAGE}" ]; \
+		then cp Dockerfile Dockerfile.build; \
+		else \
+			echo "FROM ${OWNER}/${BASE_IMAGE}:${BASE_REVISION}" > Dockerfile.build; \
+			tail -n +2 Dockerfile >> Dockerfile.build; \
+		fi 
+	docker build ${BUILD_ARGS} -t ${OWNER}/${IMAGE}:${REVISION} -f Dockerfile.build . \
+		&& docker tag ${OWNER}/${IMAGE}:${REVISION} ${OWNER}/${IMAGE}:latest \
+		&& touch $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE} 
+
+untag:
+	-rm $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}
+
+build: 
+	mkdir -p ${TAGS_DIR}
+	if [ ! -f $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE} ]; \
+		then if docker pull ${OWNER}/${IMAGE}:${REVISION}; \
+			then touch $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}; \
+			else $(MAKE) -f ../Makefile.docker $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}; \
+			fi; \
+		fi
+
+update: untag 
+	mkdir -p ${TAGS_DIR}
+	$(MAKE) -f ../Makefile.docker $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}
+
+push:
+	docker push ${OWNER}/${IMAGE}:${REVISION} 
+	docker push ${OWNER}/${IMAGE}:latest
