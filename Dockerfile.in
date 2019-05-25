@@ -1,4 +1,4 @@
-FROM sudachen/jupyterlab:latest
+FROM sudachen/jupy3rlab:latest
 
 USER root
 RUN mkdir -p ${SPARK_HOME}/conf \

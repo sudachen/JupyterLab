@@ -1,5 +1,5 @@
 #!/bin/sh
-CONFIG_DIR=${HOME}/JupyterDocker
+CONFIG_DIR=${HOME}/JupyterLab
 
 cd ${CONFIG_DIR}
 docker-compose -f Config/docker-compose.yml --project-directory . down

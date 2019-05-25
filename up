@@ -149,7 +149,8 @@ docker-compose -f Config/docker-compose.yml --project-directory . down
 mkdir -p MySql
 mkdir -p Jars
 mkdir -p Config/Jars
+mkdir -p Config/Settings
 
 docker-compose -f Config/docker-compose.yml --project-directory . up --build -d
-#docker container prune -f
-#docker image prune -f
+docker container prune -f
+docker image prune -f

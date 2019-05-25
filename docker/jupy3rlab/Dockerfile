@@ -2,7 +2,6 @@ FROM sudachen/jupyterlab:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
 
 # PyPy
-
 USER root
 RUN mkdir /opt/pypy \
  && ln -s /opt/pypy/bin/pypy3 /usr/local/bin \
@@ -13,7 +12,7 @@ RUN mkdir /opt/pypy \
 USER $NB_USER
 ENV PYPY_GC_MAX: 1.99GB
 ENV PYPY_GC_MAJOR_COLLECT: 1.2
-RUN curl -o /tmp/pypy.7z -L https://github.com/sudachen/dstoolbox/releases/download/1.23/pypy-3.5.7z \
+RUN curl -o /tmp/pypy.7z -L $JUPYTERLAB_URL/pypy-3.5.7z \
  &&  cd / && 7z x /tmp/pypy.7z \
  &&  rm /tmp/pypy.7z 
 RUN pypy3 -m ipykernel install --user --name "PyPy6-3.5" --display-name "PyPy 6/3.5"
@@ -39,7 +38,7 @@ RUN cd /tmp \
  && echo "ENV[\"PYTHON\"]=\"${CONDA_DIR}/bin/python3\"" >> ${JULIA_STARTUP} \
  && echo "ENV[\"CONDA_DEFAULT_ENV\"]=\"base\"" >> ${JULIA_STARTUP} \
  && echo "ENV[\"TZ\"]=\"\"" >> ${JULIA_STARTUP} 
-RUN curl -L -o /tmp/julia.7z https://github.com/sudachen/dstoolbox/releases/download/1.23/julia-101-pkgs.7z \
+RUN curl -L -o /tmp/julia.7z $JUPYTERLAB_URL/julia-101-pkgs.7z \
  && cd $HOME && 7z x /tmp/julia.7z \
  && rm /tmp/julia.7z \
  && julia -e 'using Pkg; Pkg.update(); Pkg.gc()' \
@@ -59,7 +58,6 @@ RUN curl -L -o /tmp/julia.7z https://github.com/sudachen/dstoolbox/releases/down
 RUN julia -e 'using IJulia; IJulia.installkernel("Julia", "--depwarn=no")'
 
 # Rust
-
 USER $NB_UID
 RUN curl https://sh.rustup.rs -sSf | bash -s - --default-toolchain stable -y
 ENV PATH "$HOME/.cargo/bin:$PATH"
@@ -68,15 +66,14 @@ RUN cargo install evcxr_jupyter \
 RUN sed ~/.local/share/jupyter/kernels/rust/kernel.json -i -e "s/_name\": \"Rust\"/_name\": \"Rust `rustc --version | cut -f 2 -d ' '`\"/g"    
 
 # Scala
-
 USER root
-RUN apt install -y \
+RUN apt update && apt install -qy --no-install-recommends \
       ca-certificates-java \
       openjdk-8-jdk-headless \
       maven 
-ENV ALMOND_VERSION=0.5.0 \
+ENV ALMOND_VERSION=0.1.12 \
     SBT_VERSION=1.2.8 \
-    SCALA_VERSION=2.12.8 \
+    SCALA_VERSION=2.12.7 \
     PATH=$PATH:/opt/sbt/bin
 RUN mkdir /opt/sbt \
  && curl -sL --retry 5 "https://github.com/sbt/sbt/releases/download/v${SBT_VERSION}/sbt-${SBT_VERSION}.tgz" | tar zx -C /opt/sbt --strip-components=1 \
@@ -97,7 +94,7 @@ RUN coursier bootstrap \
 # Kotlin
 USER $NB_USER
 ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
-RUN curl -L -o /tmp/kotlin.7z https://github.com/sudachen/dstoolbox/releases/download/1.23/kotlin-1.3.11.7z \
+RUN curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
  && cd $HOME/.local/share/jupyter/kernels \
  && 7z x /tmp/kotlin.7z \
  && rm /tmp/kotlin.7z \
@@ -105,18 +102,40 @@ RUN curl -L -o /tmp/kotlin.7z https://github.com/sudachen/dstoolbox/releases/dow
  && mkdir -p $ $HOME/jars
 RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/kotlin/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json
 
-#Java
-USER $NB_USER
-RUN curl -L -o /tmp/java.7z https://github.com/sudachen/dstoolbox/releases/download/1.23/java.7z \
- && cd $HOME/.local/share/jupyter/kernels \
- && 7z x /tmp/java.7z \
- && rm /tmp/java.7z \
- && sed -e 's:"Java":"Java 8":g' -i ~/.local/share/jupyter/kernels/java/kernel.json \
- && mkdir -p $ $HOME/jars
-RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/java/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/java/kernel.json
+# Java
+#USER $NB_USER
+#RUN curl -L -o /tmp/java.7z $JUPYTERLAB_URL/java.7z \
+# && cd $HOME/.local/share/jupyter/kernels \
+# && 7z x /tmp/java.7z \
+# && rm /tmp/java.7z \
+# && sed -e 's:"Java":"Java 8":g' -i ~/.local/share/jupyter/kernels/java/kernel.json \
+# && mkdir -p $ $HOME/jars
+#RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/java/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/java/kernel.json
 
-# Keras/Theano/Tensorflow
+# Go
+#USER root
+#ENV GOLANG_VERSION 1.9.7
+#ENV GOPATH $HOME/go
+#ENV LGOPATH $HOME/lgo
+#ENV PATH $GOPATH/bin:/opt/go/bin:$PATH
+#RUN curl -L https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz| tar -zx -C /opt
+
+#USER $NB_USER
+#RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" "$LGOPATH/src" "$LGOPATH/bin" \
+# && chmod -R 777 "$GOPATH" \
+# && chmod -R 777 "$LGOPATH" \
+# && go get github.com/yunabe/lgo/cmd/lgo \
+# && go get -d github.com/yunabe/lgo/cmd/lgo-internal \
+# && lgo install \
+# && python $GOPATH/src/github.com/yunabe/lgo/bin/install_kernel
+#RUN jupyter labextension install @yunabe/lgo_extension \
+# && jupyter lab clean
+#RUN go get -u github.com/nfnt/resize gonum.org/v1/gonum/... gonum.org/v1/plot/...  github.com/wcharczuk/go-chart \
+# && lgo installpkg github.com/nfnt/resize gonum.org/v1/gonum/... gonum.org/v1/plot/... github.com/wcharczuk/go-chart 
+
+# C++
 USER $NB_USER
-RUN conda install -y tensorflow-gpu keras Theano \
- && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/*
+RUN conda create -n cling \
+ && conda install xeus-cling -c conda-forge -n cling 
+RUN cp -r $CONDA_DIR/envs/cling/share/jupyter/kernels/xcpp17 $HOME/.local/share/jupyter/kernels
+

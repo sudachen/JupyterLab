@@ -2,7 +2,6 @@ FROM ubuntu:18.04
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
 ENV FULLREBUILD 20190523
 ENV DEBIAN_FRONTEND noninteractive
-
 RUN sed -i /etc/apt/sources.list -e 's/stretch main/stretch main non-free/g' \ 
  && bash -c "for i in {1..9}; do mkdir -p /usr/share/man/man\$i; done" \
  && apt-get update --fix-missing \
@@ -101,10 +100,11 @@ RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezo
  && fix-permissions ${HOME} \
  && fix-permissions ${CONDA_DIR}
 
-USER $NB_USER
+ENV JUPYTERLAB_URL https://github.com/sudachen/JupyterLab/releases/download/release1
 
+USER $NB_USER
 RUN mkdir ${HOME}/work \
- && curl -L https://repo.continuum.io/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh -o ${HOME}/miniconda.sh \
+ && curl -L $JUPYTERLAB_URL/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh -o ${HOME}/miniconda.sh \
  && ${SHELL} ${HOME}/miniconda.sh -f -b -p ${CONDA_DIR} \
  && rm ${HOME}/miniconda.sh \
  && conda config --system --append channels conda-forge \
@@ -137,12 +137,9 @@ RUN conda install -y \
        hdf5 \
        libxml2 \
        h5py \
-       ipywidgets \
        seaborn \
-       ipyleaflet  \
        openpyxl \
        geopandas \
-       folium \
        rtree \
        'cloudpickle=0.5*' \
        'dill=0.2*' \
@@ -175,10 +172,26 @@ RUN conda install -y \
         python-graphviz \
         pydot \
         'networkx=2.*' \
-        geopy \ 
         pytz \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
+
+#USER root
+#RUN apt-get update --fix-missing \
+# && apt-get install -qy --no-install-recommends \
+#        libcairo2 \
+#        libpango-1.0-0 \
+#        libpangocairo-1.0-0 \
+#        libgdk-pixbuf2.0-0 \
+#        shared-mime-info \
+# && apt-get clean \
+# && rm -rf /var/lib/apt/lists/* 
+#USER $NB_USER
+
+RUN conda install -y \
+	-c carta python3-saml \
+ && conda clean -tipsy \
+ && rm -r ${CONDA_DIR}/pkgs/*
 
 RUN conda install -y \
         dask \
@@ -197,8 +210,6 @@ RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot"
 # Other
 
 USER $NB_USER    
-RUN pip install -U --no-cache-dir pystan pymc
-RUN pip install -U --no-cache-dir fbprophet
 
 RUN pip install -U --no-cache-dir \
        'requests-oauthlib==1.1.0' \
@@ -219,17 +230,19 @@ RUN pip install -U --no-cache-dir \
         git+https://github.com/sudachen/ipython-sql 
 
 RUN pip install -U --no-cache-dir \
+        pymc \
         pyotp \
         singleton_decorator \
         pythran \
         pybind11 \
         python-Levenshtein \
         Wand \
-        mmh3 
+        mmh3 \
+        weasyprint
 
 # OpenCL/CPU
 USER root
-RUN wget https://github.com/sudachen/dstoolbox/releases/download/1.23/intel-cpu-ocl.7z -q -O /tmp/intel-cpu-ocl.7z --no-check-certificate \
+RUN wget $JUPYTERLAB_URL/intel-cpu-ocl.7z -q -O /tmp/intel-cpu-ocl.7z --no-check-certificate \
   && cd /tmp \
   && 7z x intel-cpu-ocl.7z \
   && cd intel-cpu-ocl \
@@ -243,29 +256,33 @@ RUN wget https://github.com/sudachen/dstoolbox/releases/download/1.23/intel-cpu-
 USER $NB_USER
 RUN pip install -U --no-cache-dir \
         pyopencl \
-        pyclblas \
         torch \
         torchvision \
         opencv-python 
 
 # Selenium
 USER root
-ENV MOZ_HEADLESS=1
 RUN apt-get update \
   && apt-get install -qy --no-install-recommends \
        firefox \
+       xvfb \
+       xserver-xephyr \
+       vnc4server \
+       scrot \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* 
-RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.24.0/geckodriver-v0.24.0-linux64.tar.gz -q -O /tmp/geckodriver.tgz \
+RUN wget $JUPYTERLAB_URL/geckodriver.7z -q -O /tmp/geckodriver.7z \
   && cd /tmp \
-  && tar zxf geckodriver.tgz \
+  && 7z x geckodriver.7z \
   && mv geckodriver /usr/bin/geckodriver \
   && chmod +x /usr/bin/geckodriver \
   && rm geckodriver*
 
 USER $NB_USER
 RUN pip install -U --no-cache-dir \
-        selenium 
+        selenium \
+        pyvirtualdisplay \
+        pyscreenshot 
 
 # Init
 USER root

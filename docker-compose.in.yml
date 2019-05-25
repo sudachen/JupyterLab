@@ -32,6 +32,7 @@ services:
       - ${HOME}/Projects:/home/jupyter/work/Projects
       - ${HOME}/JupyterLab/Jars:/home/jupyter/jars:ro
       - ${HOME}/JupyterLab/Config/Jars:/home/jupyter/jars2:ro
+      - ${HOME}/JupyterLab/Config/Settings:/home/jupyter/.jupyter/lab/user-settings
     environment:
       PYPY_GC_MAX: 3GB
       PYPY_GC_MAJOR_COLLECT: 1.2

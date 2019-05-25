@@ -39,9 +39,8 @@ RUN mkdir ${GCLOUD_DIR} \
  && fix-permissions ${GCLOUD_DIR} 
 
 USER $NB_USER    
-RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-202.0.0-linux-x86_64.tar.gz \
-    | gzip -d \
-    | tar x -C ${GCLOUD_DIR} --strip-components=1 \
+RUN curl -L $JUPYTERLAB_URL/google-cloud-sdk-202.0.0-linux-x86_64.tgz \
+    | tar zx -C ${GCLOUD_DIR} --strip-components=1 \
  && pip install -U --no-cache-dir google-auth portpicker \
  && mkdir -p ${HOME}/content/datalab \
  && mkdir -p ${HOME}/.config/gcloud \
@@ -52,6 +51,14 @@ ENV CLOUDSDK_ROOT_DIR=$GCLOUD_DIR \
     CLOUDSDK_PYTHON=$CONDA_DIR/envs/python27/bin/python2 \
     PATH=$PATH:$GCLOUD_DIR/bin \
     DATALAB_ROOT=$HOME 
+
+# Widgets
+RUN conda install -y \
+       folium \
+       ipywidgets \
+       ipyleaflet  \
+ && conda clean -tipsy \
+ && rm -rf ${CONDA_DIR}/pkgs/* 
 
 # JupyterLab
 USER $NB_USER
@@ -79,6 +86,40 @@ RUN pip install -U --no-cache-dir 'jupyterlab>=0.35,<1.0' \
  && npm cache clean --force \
  && rm -rf ${CONDA_DIR}/pkgs/* 
 
+# Other
+USER $NB_USER    
+RUN pip install -U --no-cache-dir pystan
+RUN pip install -U --no-cache-dir fbprophet
+
+# Keras/Theano/Tensorflow
+USER $NB_USER
+RUN conda install -y tensorflow-gpu keras Theano \
+ && conda clean -tipsy \
+ && rm -rf ${CONDA_DIR}/pkgs/*
+
+# Spark
+USER root
+ENV SPARK_HOME=/opt/spark \
+    PYTHONPATH="/opt/spark/python:$PYTHONPATH" \
+    SPARK_XMX=2048M
+ENV SPARK_OPTS="--driver-java-options=-Xms1024M --driver-java-options=-Xmx$SPARK_XMX --driver-java-options=-Dlog4j.logLevel=info"
+RUN mkdir ${SPARK_HOME} \
+ && curl -L $JUPYTERLAB_URL/spark-2.4.3-bin-without-hadoop-scala-2.12.tgz -o /tmp/spark.tgz \
+ && tar xzf /tmp/spark.tgz -C ${SPARK_HOME} --strip-components=1 \
+ && rm /tmp/spark.tgz \
+ && chown $NB_USER ${SPARK_HOME} \
+ && fix-permissions ${SPARK_HOME}
+
+USER $NB_USER  
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre 
+RUN curl -L $JUPYTERLAB_URL/hadoop-2.8-jars.7z -o /tmp/hadoop-2.8-jars.7z \
+ && cd /opt/spark \
+ && 7z x -y /tmp/hadoop-2.8-jars.7z \
+ && rm /tmp/hadoop-2.8-jars.7z
+RUN pip install -U --no-cache-dir git+git://github.com/sudachen/spark-sklearn#egg=spark_sklearn\&subdirectory=python 
+
+
+# Init
 USER root
 ADD jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
 RUN fix-permissions /etc/jupyter/
@@ -88,4 +129,5 @@ WORKDIR $HOME
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
 CMD [ "jupyter", "lab" ]
 
+RUN apt update
 USER $NB_USER
