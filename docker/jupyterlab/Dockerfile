@@ -118,6 +118,13 @@ RUN curl -L $JUPYTERLAB_URL/hadoop-2.8-jars.7z -o /tmp/hadoop-2.8-jars.7z \
  && rm /tmp/hadoop-2.8-jars.7z
 RUN pip install -U --no-cache-dir git+git://github.com/sudachen/spark-sklearn#egg=spark_sklearn\&subdirectory=python 
 
+# Tensorboard
+RUN pip install -U --no-cache-dir \
+      tb-nightly future jupyter-tensorboard
+RUN jupyter labextension install jupyterlab_tensorboard
+
+# DrawIO
+RUN jupyter labextension install jupyterlab-drawio
 
 # Init
 USER root
