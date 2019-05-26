@@ -92,15 +92,15 @@ RUN coursier bootstrap \
  && rm ./almond_2_12
 
 # Kotlin
-USER $NB_USER
-ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
-RUN curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
- && cd $HOME/.local/share/jupyter/kernels \
- && 7z x /tmp/kotlin.7z \
- && rm /tmp/kotlin.7z \
- && sed -e 's:"Kotlin":"Kotlin 1.3.11":g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json \
- && mkdir -p $ $HOME/jars
-RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/kotlin/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json
+#USER $NB_USER
+#ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
+#RUN curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
+# && cd $HOME/.local/share/jupyter/kernels \
+# && 7z x /tmp/kotlin.7z \
+# && rm /tmp/kotlin.7z \
+# && sed -e 's:"Kotlin":"Kotlin 1.3.11":g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json \
+# && mkdir -p $ $HOME/jars
+#RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/kotlin/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json
 
 # Java
 #USER $NB_USER
@@ -134,8 +134,8 @@ RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/kotlin/lib/*:
 # && lgo installpkg github.com/nfnt/resize gonum.org/v1/gonum/... gonum.org/v1/plot/... github.com/wcharczuk/go-chart 
 
 # C++
-USER $NB_USER
-RUN conda create -n cling \
- && conda install xeus-cling -c conda-forge -n cling 
-RUN cp -r $CONDA_DIR/envs/cling/share/jupyter/kernels/xcpp17 $HOME/.local/share/jupyter/kernels
+#USER $NB_USER
+#RUN conda create -n cling \
+# && conda install xeus-cling -c conda-forge -n cling 
+#RUN cp -r $CONDA_DIR/envs/cling/share/jupyter/kernels/xcpp17 $HOME/.local/share/jupyter/kernels
 
