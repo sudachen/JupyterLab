@@ -103,6 +103,7 @@ RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezo
 ENV JUPYTERLAB_URL https://github.com/sudachen/JupyterLab/releases/download/release1
 
 USER $NB_USER
+ENV PYTHON_VERSION=3.7.3
 RUN mkdir ${HOME}/work \
  && curl -L $JUPYTERLAB_URL/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh -o ${HOME}/miniconda.sh \
  && ${SHELL} ${HOME}/miniconda.sh -f -b -p ${CONDA_DIR} \
@@ -110,8 +111,8 @@ RUN mkdir ${HOME}/work \
  && conda config --system --append channels conda-forge \
  #&& conda config --system --prepend channels intel \
  && conda config --system --set show_channel_urls true \
- && echo "python ==3.6.6" >> ${CONDA_DIR}/conda-meta/pinned \
- && conda install 'python==3.6.6' \
+ && echo "python ==$PYTHON_VERSION" >> ${CONDA_DIR}/conda-meta/pinned \
+ #&& conda install python==$PYTHON_VERSION \
  && conda update --all -y \
  && conda clean -tipsy \
  && rm -rf ${HOME}/.cache/yarn \
@@ -122,8 +123,8 @@ RUN mkdir ${HOME}/work \
 RUN pip install -U --no-cache-dir pip
 
 RUN conda install -y \
-       'numpy>=1.15.4' \
-       'xarray<=0.10.7' \
+       numpy \
+       xarray \
        pandas \
        scipy \
        scikit-learn \
@@ -133,7 +134,7 @@ RUN conda install -y \
        bokeh \
        cython \
        statsmodels \
-       'icu=58.2*' \
+       icu \
        hdf5 \
        libxml2 \
        h5py \
@@ -141,9 +142,9 @@ RUN conda install -y \
        openpyxl \
        geopandas \
        rtree \
-       'cloudpickle=0.5*' \
-       'dill=0.2*' \
-       'vincent=0.4.*' \
+#       'cloudpickle=0.5*' \
+#       'dill=0.2*' \
+#       'vincent=0.4.*' \
        beautifulsoup4 \
        protobuf \    
        pydrive \
@@ -167,11 +168,10 @@ RUN conda install -y \
         geopy \
         line_profiler \
         xtensor-python \
-        sklearn-contrib-lightning \
         graphviz \
         python-graphviz \
         pydot \
-        'networkx=2.*' \
+        networkx \
         pytz \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
@@ -188,10 +188,10 @@ RUN conda install -y \
 # && rm -rf /var/lib/apt/lists/* 
 #USER $NB_USER
 
-RUN conda install -y \
-	-c carta python3-saml \
- && conda clean -tipsy \
- && rm -r ${CONDA_DIR}/pkgs/*
+#RUN conda install -y \
+#	-c carta python3-saml \
+# && conda clean -tipsy \
+# && rm -r ${CONDA_DIR}/pkgs/*
 
 RUN conda install -y \
         dask \
@@ -297,4 +297,3 @@ ENTRYPOINT [ "/usr/bin/tini", "--" ]
 ADD circus.ini /etc/
 ADD nginx.conf /etc/nginx/
 CMD ["circusd", "/etc/circus.ini"]
-

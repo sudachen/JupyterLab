@@ -1,4 +1,4 @@
-FROM sudachen/jupyter1:latest
+FROM sudachen/julia1:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 LABEL com.nvidia.cuda.version="9.2"
@@ -9,13 +9,13 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=9.2"
 ENV FULLREBUILD 20190523
 ENV DEBIAN_FRONTEND noninteractive
 
+USER root
 RUN apt-get update \
  && apt-get install -qy --no-install-recommends \
        software-properties-common \
  && add-apt-repository -y ppa:graphics-drivers/ppa \
  && apt-get install -y libnvidia-compute-390 \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/* 
+ && apt-get clean  
  
 # Python 2.7
 USER $NB_USER
@@ -91,32 +91,11 @@ USER $NB_USER
 RUN pip install -U --no-cache-dir pystan
 RUN pip install -U --no-cache-dir fbprophet
 
-# Keras/Theano/Tensorflow
+# Tensorflow
 USER $NB_USER
-RUN conda install -y tensorflow-gpu keras Theano \
+RUN conda install -y tensorflow-gpu \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
-
-# Spark
-USER root
-ENV SPARK_HOME=/opt/spark \
-    PYTHONPATH="/opt/spark/python:$PYTHONPATH" \
-    SPARK_XMX=2048M
-ENV SPARK_OPTS="--driver-java-options=-Xms1024M --driver-java-options=-Xmx$SPARK_XMX --driver-java-options=-Dlog4j.logLevel=info"
-RUN mkdir ${SPARK_HOME} \
- && curl -L $JUPYTERLAB_URL/spark-2.4.3-bin-without-hadoop-scala-2.12.tgz -o /tmp/spark.tgz \
- && tar xzf /tmp/spark.tgz -C ${SPARK_HOME} --strip-components=1 \
- && rm /tmp/spark.tgz \
- && chown $NB_USER ${SPARK_HOME} \
- && fix-permissions ${SPARK_HOME}
-
-USER $NB_USER  
-ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre 
-RUN curl -L $JUPYTERLAB_URL/hadoop-2.8-jars.7z -o /tmp/hadoop-2.8-jars.7z \
- && cd /opt/spark \
- && 7z x -y /tmp/hadoop-2.8-jars.7z \
- && rm /tmp/hadoop-2.8-jars.7z
-RUN pip install -U --no-cache-dir git+git://github.com/sudachen/spark-sklearn#egg=spark_sklearn\&subdirectory=python 
 
 # Tensorboard
 RUN pip install -U --no-cache-dir \

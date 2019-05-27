@@ -18,45 +18,6 @@ RUN curl -o /tmp/pypy.7z -L $JUPYTERLAB_URL/pypy-3.5.7z \
 RUN pypy3 -m ipykernel install --user --name "PyPy6-3.5" --display-name "PyPy 6/3.5"
 COPY logo-32x32.png logo-64x64.png $HOME/.local/share/jupyter/kernels/pypy6-3.5/
 
-# Julia
-USER root
-ENV JULIA_BASE=/opt/julia \
-    JULIA_STARTUP=/opt/julia/etc/julia/startup.jl \
-    JULIA_VERSION=1.0.3 
-RUN mkdir ${JULIA_BASE} \
- && ln -fs ${JULIA_BASE}/bin/julia /usr/local/bin/julia \ 
- && chown $NB_USER ${JULIA_BASE} \
- && fix-permissions ${JULIA_BASE}
-
-USER $NB_UID
-RUN cd /tmp \
- && wget -q https://julialang-s3.julialang.org/bin/linux/x64/`echo ${JULIA_VERSION} | cut -d. -f 1,2`/julia-${JULIA_VERSION}-linux-x86_64.tar.gz \
- && tar xzf julia-${JULIA_VERSION}-linux-x86_64.tar.gz -C ${JULIA_BASE} --strip-components=1 \
- && rm /tmp/julia-${JULIA_VERSION}-linux-x86_64.tar.gz \
- && echo "using Libdl; push!(Libdl.DL_LOAD_PATH, \"${CONDA_DIR}/lib\")" >> ${JULIA_STARTUP} \
- && echo "ENV[\"PATH\"]=\"${CONDA_DIR}/bin:\$(ENV[\"PATH\"])\"" >> ${JULIA_STARTUP} \
- && echo "ENV[\"PYTHON\"]=\"${CONDA_DIR}/bin/python3\"" >> ${JULIA_STARTUP} \
- && echo "ENV[\"CONDA_DEFAULT_ENV\"]=\"base\"" >> ${JULIA_STARTUP} \
- && echo "ENV[\"TZ\"]=\"\"" >> ${JULIA_STARTUP} 
-RUN curl -L -o /tmp/julia.7z $JUPYTERLAB_URL/julia-101-pkgs.7z \
- && cd $HOME && 7z x /tmp/julia.7z \
- && rm /tmp/julia.7z \
- && julia -e 'using Pkg; Pkg.update(); Pkg.gc()' \
- && julia -e 'using Pkg; Pkg.add("JuliaDB")' \
- && screen -S julia -d -m -s julia \
- && screen -S julia -p 0 -X stuff '^M]^Mprecompile^M^M^M' \
- && sp='/-\|' \
- && printf 'Precompiling Julia Packages...  ' \
- && sleep 1 \
- && while [ "`screen -S julia -p 0 -X hardcopy /tmp/screen && tac /tmp/screen | grep '.' -a -m 1`" != "(v1.0) pkg>" ]; do \
-       printf '\b%.1s' "$sp"; \
-       sp=${sp#?}${sp%???}; \
-       sleep 0.5; \
-    done \
- && echo done \
- && julia -e 'using Pkg; Pkg.gc()'
-RUN julia -e 'using IJulia; IJulia.installkernel("Julia", "--depwarn=no")'
-
 # Rust
 USER $NB_UID
 RUN curl https://sh.rustup.rs -sSf | bash -s - --default-toolchain stable -y
@@ -67,7 +28,7 @@ RUN sed ~/.local/share/jupyter/kernels/rust/kernel.json -i -e "s/_name\": \"Rust
 
 # Scala
 USER root
-RUN apt update && apt install -qy --no-install-recommends \
+RUN apt install -qy --no-install-recommends \
       ca-certificates-java \
       openjdk-8-jdk-headless \
       maven 
@@ -91,16 +52,43 @@ RUN coursier bootstrap \
  && ./almond_2_12 --id almond_scala_2_12 --display-name "Scala $SCALA_VERSION" --install \
  && rm ./almond_2_12
 
+# Spark
+USER root
+ENV SPARK_HOME=/opt/spark \
+    PYTHONPATH="/opt/spark/python:$PYTHONPATH" \
+    SPARK_XMX=2048M
+ENV SPARK_OPTS="--driver-java-options=-Xms1024M --driver-java-options=-Xmx$SPARK_XMX --driver-java-options=-Dlog4j.logLevel=info"
+RUN mkdir ${SPARK_HOME} \
+ && curl -L $JUPYTERLAB_URL/spark-2.4.3-bin-without-hadoop-scala-2.12.tgz -o /tmp/spark.tgz \
+ && tar xzf /tmp/spark.tgz -C ${SPARK_HOME} --strip-components=1 \
+ && rm /tmp/spark.tgz \
+ && chown $NB_USER ${SPARK_HOME} \
+ && fix-permissions ${SPARK_HOME}
+
+USER $NB_USER  
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre 
+RUN curl -L $JUPYTERLAB_URL/hadoop-2.8-jars.7z -o /tmp/hadoop-2.8-jars.7z \
+ && cd /opt/spark \
+ && 7z x -y /tmp/hadoop-2.8-jars.7z \
+ && rm /tmp/hadoop-2.8-jars.7z
+RUN pip install -U --no-cache-dir git+git://github.com/sudachen/spark-sklearn#egg=spark_sklearn\&subdirectory=python 
+
 # Kotlin
-#USER $NB_USER
-#ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
-#RUN curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
-# && cd $HOME/.local/share/jupyter/kernels \
-# && 7z x /tmp/kotlin.7z \
-# && rm /tmp/kotlin.7z \
-# && sed -e 's:"Kotlin":"Kotlin 1.3.11":g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json \
-# && mkdir -p $ $HOME/jars
-#RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/kotlin/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json
+USER $NB_USER
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
+RUN curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
+ && cd $HOME/.local/share/jupyter/kernels \
+ && 7z x /tmp/kotlin.7z \
+ && rm /tmp/kotlin.7z \
+ && sed -e 's:"Kotlin":"Kotlin 1.3.11":g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json \
+ && mkdir -p $ $HOME/jars \
+ && sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/kotlin/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json
+
+# Keras/Theano
+USER $NB_USER
+RUN conda install -y keras Theano \
+ && conda clean -tipsy \
+ && rm -rf ${CONDA_DIR}/pkgs/*
 
 # Java
 #USER $NB_USER
@@ -109,8 +97,8 @@ RUN coursier bootstrap \
 # && 7z x /tmp/java.7z \
 # && rm /tmp/java.7z \
 # && sed -e 's:"Java":"Java 8":g' -i ~/.local/share/jupyter/kernels/java/kernel.json \
-# && mkdir -p $ $HOME/jars
-#RUN sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/java/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/java/kernel.json
+# && mkdir -p $ $HOME/jars \
+# && sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/java/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/java/kernel.json
 
 # Go
 #USER root
