@@ -1,9 +1,8 @@
-FROM sudachen/jupy3rlab:latest
+FROM sudachen/jupyterlab:latest
 
 USER root
 RUN mkdir -p ${SPARK_HOME}/conf \
     && echo "spark.ui.port: 8884" >> ${SPARK_HOME}/conf/spark-defaults.conf
-RUN usermod -aG video jupyter
 ADD jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
 ADD setup_kernel.py $HOME/.ipython/profile_default/startup/setup_kernel.py
 ADD joerc /root/.joerc

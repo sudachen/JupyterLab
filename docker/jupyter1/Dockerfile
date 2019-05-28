@@ -118,8 +118,7 @@ RUN mkdir ${HOME}/work \
  && rm -rf ${HOME}/.cache/yarn \
  && rm -rf ${CONDA_DIR}/pkgs/* \
  && echo ". ${CONDA_DIR}/etc/profile.d/conda.sh" >> ${HOME}/.bashrc 
- #&& echo "conda activate base" >> ${HOME}/.bashrc 
-
+ 
 RUN pip install -U --no-cache-dir pip
 
 RUN conda install -y \
@@ -142,9 +141,6 @@ RUN conda install -y \
        openpyxl \
        geopandas \
        rtree \
-#       'cloudpickle=0.5*' \
-#       'dill=0.2*' \
-#       'vincent=0.4.*' \
        beautifulsoup4 \
        protobuf \    
        pydrive \
@@ -176,23 +172,6 @@ RUN conda install -y \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
 
-#USER root
-#RUN apt-get update --fix-missing \
-# && apt-get install -qy --no-install-recommends \
-#        libcairo2 \
-#        libpango-1.0-0 \
-#        libpangocairo-1.0-0 \
-#        libgdk-pixbuf2.0-0 \
-#        shared-mime-info \
-# && apt-get clean \
-# && rm -rf /var/lib/apt/lists/* 
-#USER $NB_USER
-
-#RUN conda install -y \
-#	-c carta python3-saml \
-# && conda clean -tipsy \
-# && rm -r ${CONDA_DIR}/pkgs/*
-
 RUN conda install -y \
         dask \
         psutil \
@@ -221,10 +200,7 @@ RUN pip install -U --no-cache-dir \
         alembic \
         flask \
         flask-sqlalchemy \
-        flask-migrate \
         flask-oauthlib \
-        flask-script \
-        flask-admin \
         git+https://github.com/sudachen/colabtools \
         git+https://github.com/sudachen/pygdrive-funcs.git#egg=gdrive \ 
         git+https://github.com/sudachen/ipython-sql 
@@ -256,8 +232,8 @@ RUN wget $JUPYTERLAB_URL/intel-cpu-ocl.7z -q -O /tmp/intel-cpu-ocl.7z --no-check
 USER $NB_USER
 RUN pip install -U --no-cache-dir \
         pyopencl \
-        torch \
-        torchvision \
+        https://download.pytorch.org/whl/cpu/torch-1.1.0-cp37-cp37m-linux_x86_64.whl \
+        https://download.pytorch.org/whl/cpu/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl \
         opencv-python 
 
 # Selenium
@@ -292,8 +268,11 @@ RUN chmod +x /usr/bin/tini \
  && echo "jupyter ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/notebook \
  && fix-permissions /etc/jupyter/
 
+ENV CPGPU=cpu
+
 WORKDIR $HOME
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
 ADD circus.ini /etc/
 ADD nginx.conf /etc/nginx/
 CMD ["circusd", "/etc/circus.ini"]
+

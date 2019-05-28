@@ -1,22 +1,9 @@
-FROM sudachen/julia1:latest
+FROM sudachen/julia1-gpu:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
-LABEL com.nvidia.volumes.needed="nvidia_driver"
-LABEL com.nvidia.cuda.version="9.2"
-LABEL com.nvidia.cudnn.version="7.4"
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-ENV NVIDIA_REQUIRE_CUDA "cuda>=9.2"
-ENV FULLREBUILD 20190523
-ENV DEBIAN_FRONTEND noninteractive
 
 USER root
-RUN apt-get update \
- && apt-get install -qy --no-install-recommends \
-       software-properties-common \
- && add-apt-repository -y ppa:graphics-drivers/ppa \
- && apt-get install -y libnvidia-compute-390 \
- && apt-get clean  
- 
+RUN apt-get update && apt-get clean  
+
 # Python 2.7
 USER $NB_USER
 RUN conda create -n python27 python=2.7 \
@@ -91,15 +78,10 @@ USER $NB_USER
 RUN pip install -U --no-cache-dir pystan
 RUN pip install -U --no-cache-dir fbprophet
 
-# Tensorflow
-USER $NB_USER
-RUN conda install -y tensorflow-gpu \
- && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/*
-
 # Tensorboard
-RUN pip install -U --no-cache-dir \
-      tb-nightly future jupyter-tensorboard
+RUN if [ "$CPGPU" == "gpu" ]; then tfsfx=-gpu; else tfsfx=; fi \
+ && pip install -U --no-cache-dir \
+      tb-nightly future tensorflow$tfsfx==1.13.1 jupyter-tensorboard
 RUN jupyter labextension install jupyterlab_tensorboard
 
 # DrawIO
