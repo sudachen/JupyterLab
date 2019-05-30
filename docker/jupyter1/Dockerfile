@@ -238,9 +238,12 @@ RUN pip install -U --no-cache-dir \
 
 # Selenium
 USER root
-RUN apt-get update \
+RUN apt-get update --fix-missing \
+  && apt-get install software-properties-common \
+  && add-apt-repository "deb http://archive.canonical.com/ubuntu $(lsb_release -sc) partner" \
   && apt-get install -qy --no-install-recommends \
        firefox \
+       adobe-flashplugin \
        xvfb \
        xserver-xephyr \
        vnc4server \

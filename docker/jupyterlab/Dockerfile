@@ -79,7 +79,7 @@ RUN pip install -U --no-cache-dir pystan
 RUN pip install -U --no-cache-dir fbprophet
 
 # Tensorboard
-RUN if [ "$CPGPU" == "gpu" ]; then tfsfx=-gpu; else tfsfx=; fi \
+RUN case "$CPGPU" in gpu) tfsfx=-gpu;; *) tfsfx=;; esac \
  && pip install -U --no-cache-dir \
       tb-nightly future tensorflow$tfsfx==1.13.1 jupyter-tensorboard
 RUN jupyter labextension install jupyterlab_tensorboard

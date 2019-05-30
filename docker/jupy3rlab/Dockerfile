@@ -84,11 +84,13 @@ RUN curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
  && mkdir -p $ $HOME/jars \
  && sed -e 's;\${PATH};"/home/jupyter/.local/share/jupyter/kernels/kotlin/lib/*:/home/jupyter/jars/*:/home/jupyter/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json
 
+RUN pip install -U --no-cache-dir keras
+
 # Keras/Theano
-USER $NB_USER
-RUN conda install -y keras Theano \
- && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/*
+#USER $NB_USER
+#RUN conda install -y keras Theano \
+# && conda clean -tipsy \
+# && rm -rf ${CONDA_DIR}/pkgs/*
 
 # Java
 #USER $NB_USER
