@@ -32,15 +32,6 @@ RUN  wget $JUPYTERLAB_URL/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb -q -O /tmp/c
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* 
 
-#RUN curl -L $JUPYTERLAB_URL/libcudnn7.7z -o /tmp/libcudnn7.7z \
-#  && cd /tmp \
-#  && 7z x libcudnn7.7z \
-#  && cd / \
-#  && dpkg -i /tmp/libcudnn7/*.deb \
-#  && rm -r /tmp/libcudnn7* \
-#  && echo "/usr/local/conda-10.0/lib64" > /etc/ld.so.conf.d/cuda-10.0.conf \
-#  && ldconfig
-
 RUN curl -L $JUPYTERLAB_URL/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb -o /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
   && dpkg -i /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
   && rm -r /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
@@ -51,8 +42,3 @@ ENV PATH=/usr/local/cuda-10.0/bin:$PATH
 
 RUN usermod -aG video jupyter
 
-USER $NB_USER
-RUN pip install -U --no-cache-dir  \
-      https://download.pytorch.org/whl/cu100/torch-1.1.0-cp37-cp37m-linux_x86_64.whl \
- && pip install -U --no-cache-dir  \
-      https://download.pytorch.org/whl/cu100/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl

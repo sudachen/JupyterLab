@@ -1,32 +1,25 @@
 FROM sudachen/julia1-gpu:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
+ENV GCLOUD_DIR ${HOME}/.google_cloud
+ENV CLOUDSDK_ROOT_DIR=$GCLOUD_DIR \
+    CLOUDSDK_PYTHON=$CONDA_DIR/envs/python27/bin/python2 \
+    PATH=$PATH:$GCLOUD_DIR/bin \
+    DATALAB_ROOT=$HOME 
 
 USER root
 RUN apt-get update && apt-get clean  
 
 # Python 2.7
-USER $NB_USER
+USER lab
 RUN conda create -n python27 python=2.7 \
  && conda install -n python27 -c conda-forge \
-       'blas=*=*openblas*' \
-       'numpy=1.14.*=*openblas*' \
-       'pandas=0.23.*' \
-       'sqlalchemy=1.2.*' \
-       'libpq=9.6.*' \
-       'psycopg2=2.7.*' \
-       'pymysql=0.8.*' \
+       nomkl \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
 
 # COLAB
-USER root
-ENV GCLOUD_DIR /opt/google_cloud
-RUN mkdir ${GCLOUD_DIR} \
- && chown ${NB_USER}:${NB_GID} ${GCLOUD_DIR} \
- && fix-permissions ${GCLOUD_DIR} 
-
-USER $NB_USER    
-RUN curl -L $JUPYTERLAB_URL/google-cloud-sdk-202.0.0-linux-x86_64.tgz \
+RUN mkdir -p ${GCLOUD_DIR} \
+ && curl -L $JUPYTERLAB_URL/google-cloud-sdk-202.0.0-linux-x86_64.tgz \
     | tar zx -C ${GCLOUD_DIR} --strip-components=1 \
  && pip install -U --no-cache-dir google-auth portpicker \
  && mkdir -p ${HOME}/content/datalab \
@@ -34,21 +27,50 @@ RUN curl -L $JUPYTERLAB_URL/google-cloud-sdk-202.0.0-linux-x86_64.tgz \
  && ln -s ${HOME}/.config/gcloud ${HOME}/content/datalab/.config \
  && ln -s ${HOME}/.config/gcloud ${HOME}/content/.config 
 
-ENV CLOUDSDK_ROOT_DIR=$GCLOUD_DIR \
-    CLOUDSDK_PYTHON=$CONDA_DIR/envs/python27/bin/python2 \
-    PATH=$PATH:$GCLOUD_DIR/bin \
-    DATALAB_ROOT=$HOME 
-
-# Widgets
+# Other
 RUN conda install -y \
-       folium \
-       ipywidgets \
-       ipyleaflet  \
+    notebook \
+    icu \
+    xarray \
+    sympy \
+    bokeh \
+    statsmodels \
+    h5py \
+    seaborn \
+    openpyxl \
+    geopandas \
+    rtree \
+    pydrive \
+    psycopg2 \
+    pyarrow \
+    sqlalchemy-redshift \
+    ipython-sql \
+    pytables \
+    xlrd \
+    numba \
+    geopy \
+    line_profiler \
+    xtensor-python \
+    graphviz \
+    python-graphviz \
+    pydot \
+    networkx \
+    \
+    folium \
+    ipywidgets \
+    ipyleaflet  \
  && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/* 
+ && rm -rf ${CONDA_DIR}/pkgs/*
+
+RUN pip install -U --no-cache-dir \
+    pymc \
+    pythran \
+    python-Levenshtein 
+
+# Import matplotlib the first time to build the font cache.
+RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" 
 
 # JupyterLab
-USER $NB_USER
 RUN pip install -U --no-cache-dir 'jupyterlab>=0.35,<1.0' \
  && jupyter nbextension enable --py widgetsnbextension --sys-prefix \
  && jupyter labextension install \
@@ -74,28 +96,31 @@ RUN pip install -U --no-cache-dir 'jupyterlab>=0.35,<1.0' \
  && rm -rf ${CONDA_DIR}/pkgs/* 
 
 # Other
-USER $NB_USER    
-RUN pip install -U --no-cache-dir pystan
-RUN pip install -U --no-cache-dir fbprophet
+RUN pip install -U --no-cache-dir \
+    git+https://github.com/sudachen/colabtools \
+    'requests-oauthlib==1.1.0' \
+    google-api-python-client \
+    oauth2client \
+    pydrive \
+ && pip install -U --no-cache-dir pystan \
+ && pip install -U --no-cache-dir fbprophet
 
-# Tensorboard
-RUN case "$CPGPU" in gpu) tfsfx=-gpu;; *) tfsfx=;; esac \
+# Tensorboard/Tf/Torch/CV/DrawIO
+RUN case "$CPGPU" in gpu) tfsfx=-gpu; tcdr=cu100;; *) tfsfx=; tcdr=cpu;; esac \
  && pip install -U --no-cache-dir \
-      tb-nightly future tensorflow$tfsfx==1.13.1 jupyter-tensorboard
-RUN jupyter labextension install jupyterlab_tensorboard
-
-# DrawIO
-RUN jupyter labextension install jupyterlab-drawio
+    tb-nightly \
+    future \
+    tensorflow$tfsfx==1.13.1 \
+    jupyter-tensorboard \
+    https://download.pytorch.org/whl/$tcdr/torch-1.1.0-cp37-cp37m-linux_x86_64.whl \
+    https://download.pytorch.org/whl/$tcdr/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl \
+ && jupyter labextension install jupyterlab_tensorboard \
+ && jupyter labextension install jupyterlab-drawio
 
 # Init
 USER root
 ADD jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
-RUN fix-permissions /etc/jupyter/
 
+USER lab
 EXPOSE 8888
-WORKDIR $HOME
-ENTRYPOINT [ "/usr/bin/tini", "--" ]
 CMD [ "jupyter", "lab" ]
-
-RUN apt update
-USER $NB_USER

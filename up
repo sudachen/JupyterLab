@@ -147,6 +147,7 @@ fi
 docker-compose -f Config/docker-compose.yml --project-directory . down
 
 mkdir -p MySql
+mkdir -p Mongo
 mkdir -p Jars
 mkdir -p Config/Jars
 mkdir -p Config/Settings

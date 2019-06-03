@@ -1,76 +1,92 @@
 FROM ubuntu:18.04
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
-ENV FULLREBUILD 20190523
+ENV BUILD 20190602
+ENV XDG_CACHE_HOME ${HOME}/.cache/
 ENV DEBIAN_FRONTEND noninteractive
+ENV JUPYTERLAB_URL https://github.com/sudachen/JupyterLab/releases/download/release1
 RUN sed -i /etc/apt/sources.list -e 's/stretch main/stretch main non-free/g' \ 
  && bash -c "for i in {1..9}; do mkdir -p /usr/share/man/man\$i; done" \
  && apt-get update --fix-missing \
  && apt-get install -qy --no-install-recommends \
-       ca-certificates \
-       wget \
-       git \	
-       bash \
-       sudo \
-       unzip \
-       bzip2 \
-       tzdata \
-       locales \
-       libsm6 \
-       libxt6 \
-       libxrender1 \
-       fonts-dejavu \
-       fonts-liberation \
-       procps \
-       \
-       build-essential \
-       gfortran \
-       gcc \
-       g++ \
-       \
-       libpq5 \
-       libpq-dev \
-       hdf5-tools \
-       libhdf5-dev \
-       sqlite3 \
-       libsqlite3-dev \
-       imagemagick \
-       libreadline-dev \
-       spatialite-bin \
-       libgtk2.0-0 \
-       libfreetype6-dev \
-       curl \
-       \
-       mysql-client \
-       mysql-utilities \
-       postgresql-client \
-       gnupg2 \
-       ssh \
-       apt-transport-https \
-       openvpn \
-       net-tools \
-       iputils-ping \
-       dnsutils \
-       nginx \
-       joe \
-       zbar-tools \
-       curl \
-       file \
-       mesa-opencl-icd ocl-icd-opencl-dev opencl-headers \
-       clinfo \
-       libclblas-dev \
-       time \
-       libatlas-base-dev \
-       tcl \
-       tk \
-       gfortran \
-       libfreetype6-dev \
-       pkg-config \
-       libopenblas-dev \
-       swig \
-       p7zip-full \
-       libzmq3-dev \
-       libssl-dev \
-       screen \
+    ca-certificates \
+    software-properties-common \
+    wget \
+    git \	
+    bash \
+    sudo \
+    unzip \
+    bzip2 \
+    tzdata \
+    locales \
+    libsm6 \
+    libxt6 \
+    libxrender1 \
+    fonts-dejavu \
+    fonts-liberation \
+    procps \
+    \
+    build-essential \
+    gfortran \
+    gcc \
+    g++ \
+    \
+    libpq5 \
+    libpq-dev \
+    hdf5-tools \
+    libhdf5-dev \
+    sqlite3 \
+    libsqlite3-dev \
+    imagemagick \
+    libreadline-dev \
+    spatialite-bin \
+    libgtk2.0-0 \
+    libfreetype6-dev \
+    curl \
+    \
+    mysql-client \
+    mysql-utilities \
+    postgresql-client \
+    gnupg2 \
+    ssh \
+    apt-transport-https \
+    openvpn \
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    nginx \
+    joe \
+    zbar-tools \
+    curl \
+    file \
+    ocl-icd-opencl-dev opencl-headers \
+    clinfo \
+    libclblas-dev \
+    time \
+    libatlas-base-dev \
+    tcl \
+    tk \
+    gfortran \
+    libfreetype6-dev \
+    pkg-config \
+    libopenblas-dev \
+    swig \
+    p7zip-full \
+    libzmq3-dev \
+    libssl-dev \
+    screen \
+    firefox \
+    xvfb \
+    xserver-xephyr \
+    vnc4server \
+    scrot \
+    libgmp3-dev \
+    libfreerdp-dev \
+ && add-apt-repository "deb http://archive.canonical.com/ubuntu $(lsb_release -sc) partner" \
+ && apt-get install -qy --no-install-recommends \
+    adobe-flashplugin \
+ # AMD APU processors \
+ && apt-get install -qy --no-install-recommends \
+    mesa-opencl-icd \ 
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && locale-gen en_US.UTF-8 \
@@ -100,8 +116,6 @@ RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezo
  && fix-permissions ${HOME} \
  && fix-permissions ${CONDA_DIR}
 
-ENV JUPYTERLAB_URL https://github.com/sudachen/JupyterLab/releases/download/release1
-
 USER $NB_USER
 ENV PYTHON_VERSION=3.7.3
 RUN mkdir ${HOME}/work \
@@ -109,112 +123,83 @@ RUN mkdir ${HOME}/work \
  && ${SHELL} ${HOME}/miniconda.sh -f -b -p ${CONDA_DIR} \
  && rm ${HOME}/miniconda.sh \
  && conda config --system --append channels conda-forge \
- #&& conda config --system --prepend channels intel \
  && conda config --system --set show_channel_urls true \
  && echo "python ==$PYTHON_VERSION" >> ${CONDA_DIR}/conda-meta/pinned \
- #&& conda install python==$PYTHON_VERSION \
  && conda update --all -y \
  && conda clean -tipsy \
- && rm -rf ${HOME}/.cache/yarn \
  && rm -rf ${CONDA_DIR}/pkgs/* \
+ && pip install -U --no-cache-dir pip \
  && echo ". ${CONDA_DIR}/etc/profile.d/conda.sh" >> ${HOME}/.bashrc 
  
-RUN pip install -U --no-cache-dir pip
-
 RUN conda install -y \
-       numpy \
-       xarray \
-       pandas \
-       scipy \
-       scikit-learn \
-       sympy \
-       matplotlib \
-       notebook \
-       bokeh \
-       cython \
-       statsmodels \
-       icu \
-       hdf5 \
-       libxml2 \
-       h5py \
-       seaborn \
-       openpyxl \
-       geopandas \
-       rtree \
-       beautifulsoup4 \
-       protobuf \    
-       pydrive \
-       psycopg2 \
-       pymysql \
-       pyarrow \
-       jemalloc \
-       sqlalchemy \
-       sqlalchemy-redshift \
-       ipython-sql \
- && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/* 
-
-RUN conda install -y \
-        pytables \
-        xlrd \
-        nodejs \
-        numba \
-        pexpect \
-        scrapy \
-        geopy \
-        line_profiler \
-        xtensor-python \
-        graphviz \
-        python-graphviz \
-        pydot \
-        networkx \
-        pytz \
- && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/*
-
-RUN conda install -y \
-        dask \
-        psutil \
-        requests \
-        gunicorn \
-        circus \
-        urllib3 \
+    nomkl \
+    numpy \
+    pandas \
+    matplotlib \
+    notebook \
+    cython \
+    jemalloc \
+    sqlalchemy \
+    pexpect \
+    scrapy \
+    pytz \
+    psutil \
+    requests \
+    gunicorn \
+    circus \
+    urllib3 \
+    hdf5 \
+    pymysql \
+    beautifulsoup4 \
+    icu \
+    libxml2 \
+    nodejs \
+    protobuf \    
+    xarray \
+    scipy \
+    scikit-learn \
+    sympy \
+    bokeh \
+    statsmodels \
+    h5py \
+    seaborn \
+    openpyxl \
+    geopandas \
+    rtree \
+    pydrive \
+    psycopg2 \
+    pyarrow \
+    sqlalchemy-redshift \
+    ipython-sql \
+    pytables \
+    xlrd \
+    numba \
+    geopy \
+    line_profiler \
+    xtensor-python \
+    graphviz \
+    python-graphviz \
+    pydot \
+    networkx \
+    dask \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
 
-# Import matplotlib the first time to build the font cache.
-ENV XDG_CACHE_HOME ${HOME}/.cache/
-RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" 
-
-# Other
-
-USER $NB_USER    
-
 RUN pip install -U --no-cache-dir \
-       'requests-oauthlib==1.1.0' \
-        google-api-python-client \
-        oauth2client \
-        pydrive \
-        hug \
-        falcon \
-        alembic \
-        flask \
-        flask-sqlalchemy \
-        flask-oauthlib \
-        git+https://github.com/sudachen/colabtools \
-        git+https://github.com/sudachen/pygdrive-funcs.git#egg=gdrive \ 
-        git+https://github.com/sudachen/ipython-sql 
-
-RUN pip install -U --no-cache-dir \
-        pymc \
-        pyotp \
-        singleton_decorator \
-        pythran \
-        pybind11 \
-        python-Levenshtein \
-        Wand \
-        mmh3 \
-        weasyprint
+    pymongo \
+    pyotp \
+    singleton_decorator \
+    mmh3 \
+    fastecdsa \
+    pynacl \
+    pymc \
+    pythran \
+    python-Levenshtein \
+    Wand \
+    pybind11 \
+    weasyprint \
+    pyopencl \
+    opencv-python 
 
 # OpenCL/CPU
 USER root
@@ -226,30 +211,11 @@ RUN wget $JUPYTERLAB_URL/intel-cpu-ocl.7z -q -O /tmp/intel-cpu-ocl.7z --no-check
   && dpkg -i *.deb \
   && cd .. \
   && rm -r intel-cpu-ocl* \
+  && mkdir -p /etc/OpenCL/vendors/ \
   && echo "/opt/intel/opencl-1.2-6.4.0.25/lib64/libintelocl.so" > /etc/OpenCL/vendors/intel-cpu.icd
-
-# GPU/CV
-USER $NB_USER
-RUN pip install -U --no-cache-dir \
-        pyopencl \
-        https://download.pytorch.org/whl/cpu/torch-1.1.0-cp37-cp37m-linux_x86_64.whl \
-        https://download.pytorch.org/whl/cpu/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl \
-        opencv-python 
 
 # Selenium
 USER root
-RUN apt-get update --fix-missing \
-  && apt-get install software-properties-common \
-  && add-apt-repository "deb http://archive.canonical.com/ubuntu $(lsb_release -sc) partner" \
-  && apt-get install -qy --no-install-recommends \
-       firefox \
-       adobe-flashplugin \
-       xvfb \
-       xserver-xephyr \
-       vnc4server \
-       scrot \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* 
 RUN wget $JUPYTERLAB_URL/geckodriver.7z -q -O /tmp/geckodriver.7z \
   && cd /tmp \
   && 7z x geckodriver.7z \
@@ -259,9 +225,9 @@ RUN wget $JUPYTERLAB_URL/geckodriver.7z -q -O /tmp/geckodriver.7z \
 
 USER $NB_USER
 RUN pip install -U --no-cache-dir \
-        selenium \
-        pyvirtualdisplay \
-        pyscreenshot 
+    selenium \
+    pyvirtualdisplay \
+    pyscreenshot 
 
 # Init
 USER root
@@ -271,11 +237,11 @@ RUN chmod +x /usr/bin/tini \
  && echo "jupyter ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/notebook \
  && fix-permissions /etc/jupyter/
 
-ENV CPGPU=cpu
-
+USER $NB_USER    
 WORKDIR $HOME
-ENTRYPOINT [ "/usr/bin/tini", "--" ]
-ADD circus.ini /etc/
-ADD nginx.conf /etc/nginx/
-CMD ["circusd", "/etc/circus.ini"]
+
+#ENTRYPOINT [ "/usr/bin/tini", "--" ]
+#ADD circus.ini /etc/
+#ADD nginx.conf /etc/nginx/
+#CMD ["circusd", "/etc/circus.ini"]
 

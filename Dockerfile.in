@@ -6,19 +6,19 @@ RUN mkdir -p ${SPARK_HOME}/conf \
 ADD jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
 ADD setup_kernel.py $HOME/.ipython/profile_default/startup/setup_kernel.py
 ADD joerc /root/.joerc
-RUN fix-permissions /etc/jupyter/ \
-    && fix-permissions ${HOME}/.ipython 
 RUN echo export PS1=\"\#\ \" >> /root/.bashrc \
     && echo export LS_COLORS=\'ow=01\;36\;40\' >> /root/.bashrc \
-    && echo export 'PATH="/opt/conda/bin:$PATH"' >> /root/.bashrc \
+    && echo export 'PATH="/lab/.conda/bin:$PATH"' >> /root/.bashrc \
     && cp /root/.joerc $HOME/ \
-    && chown $NB_USER:$NB_GID $HOME/.joerc
+    && chown lab:users -R $HOME
 
-USER $NB_USER
+USER lab
 RUN echo export PS1=\"\$\ \" >> ${HOME}/.bashrc  \
     && echo export LS_COLORS=\'ow=01\;36\;40\' >> ${HOME}/.bashrc \
-    && echo export 'PATH="/opt/conda/bin:$PATH"' >> ${HOME}/.bashrc
+    && echo export 'PATH="/lab/.conda/bin:$PATH"' >> ${HOME}/.bashrc
 RUN pip install -U --no-cache-dir \
+    git+https://github.com/sudachen/pygdrive-funcs.git#egg=gdrive \ 
+    git+https://github.com/sudachen/ipython-sql \
     git+https://github.com/googlecolab/jupyter_http_over_ws#egg=jupyter_http_over_ws
 
 WORKDIR $HOME/work
