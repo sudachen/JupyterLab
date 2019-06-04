@@ -14,6 +14,7 @@ USER lab
 RUN conda create -n python27 python=2.7 \
  && conda install -n python27 -c conda-forge \
        nomkl \
+       numpy \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
 
@@ -119,7 +120,7 @@ RUN case "$CPGPU" in gpu) tfsfx=-gpu; tcdr=cu100;; *) tfsfx=; tcdr=cpu;; esac \
 
 # Init
 USER root
-ADD jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
+COPY --chown=lab:users jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
 
 USER lab
 EXPOSE 8888

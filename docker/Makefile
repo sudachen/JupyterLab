@@ -1,6 +1,7 @@
 export REVISION := 1.33
 export BASE_REVISION := $(REVISION)
 export OWNER := sudachen
+export TAGS_DIR=$(shell pwd)/.tags
 
 BASE = python3
 DEFAULT = jupy3rlab-gpu
@@ -17,6 +18,10 @@ jupyterlab-gpu.Update:
 	IMAGE=$(basename $@) BASE_IMAGE=julia11-gpu BASE_REVISION=latest $(MAKE) -C jupyterlab -f $(PWD)/Makefile.docker update
 jupy3rlab-gpu.Update: 
 	IMAGE=$(basename $@) BASE_IMAGE=jupyterlab-gpu BASE_REVISION=latest $(MAKE) -C jupy3rlab -f $(PWD)/Makefile.docker update
+mongo-db.Update:
+	IMAGE=$(basename $@)  $(MAKE) -C mongo -f $(PWD)/Makefile.docker update
+mysql-db.Update:
+	IMAGE=$(basename $@)  $(MAKE) -C mysql -f $(PWD)/Makefile.docker update
 
 %.Push:
 	docker push ${OWNER}/$(basename $@):${REVISION}

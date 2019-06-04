@@ -1,17 +1,17 @@
-FROM sudachen/jupyter1:latest
+FROM sudachen/julia11:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
 
+ENV CPGPU=gpu
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 LABEL com.nvidia.cuda.version="10.0"
 LABEL com.nvidia.cudnn.version="7.6"
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0"
-
-ENV CPGPU=gpu
+ENV PATH=/usr/local/cuda-10.0/bin:$PATH
 
 USER root
-RUN  wget $JUPYTERLAB_URL/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb -q -O /tmp/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb \
+RUN  curl -L $JUPYTERLAB_URL/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb -o /tmp/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb \
   && dpkg -i /tmp/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb \
   && rm /tmp/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb \ 
   && apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub \
@@ -30,15 +30,17 @@ RUN  wget $JUPYTERLAB_URL/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb -q -O /tmp/c
     cuda-nvrtc-10-0 \
     cuda-cupti-10-0 \
   && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* 
-
-RUN curl -L $JUPYTERLAB_URL/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb -o /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
+  && rm -rf /var/lib/apt/lists/* \
+  && curl -L $JUPYTERLAB_URL/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb -o /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
   && dpkg -i /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
   && rm -r /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
   && echo "/usr/local/conda-10.0/lib64" > /etc/ld.so.conf.d/cuda-10.0.conf \
-  && ldconfig
+  && ldconfig \
+  && usermod -aG video lab \
+  && chown lab:users $HOME/.[^.]* \
+  && chown lab:users -R $HOME/.gnu*
 
-ENV PATH=/usr/local/cuda-10.0/bin:$PATH
-
-RUN usermod -aG video jupyter
-
+USER lab
+RUN julia -e 'using Pkg; Pkg.add(PackageSpec(name="CUDAdrv",rev="master"))' \
+ && julia -e 'using Pkg; Pkg.add(PackageSpec(name="CUDAnative",rev="master"))' \
+ && julia -e 'using Pkg; Pkg.add(PackageSpec(name="CuArrays",rev="master"))' 

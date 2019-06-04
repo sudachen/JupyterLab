@@ -1,5 +1,4 @@
 export ARGS
-TAGS_DIR = ../.tags
 
 $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}:
 	if [ -z "${BASE_IMAGE}" ]; \
@@ -25,8 +24,8 @@ build:
 			else $(MAKE) -f ../Makefile.docker $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}; \
 			fi; \
 		fi
-${TAGS_DIR}: 
-	mkdri -p $@
+$(TAGS_DIR): 
+	mkdir -p $@
 
 update: untag ${TAGS_DIR} $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}
 #	mkdir -p ${TAGS_DIR}
