@@ -1,14 +1,15 @@
-export ARGS
+export asrg
+export dockerfile
 
 $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}:
 	if [ -z "${BASE_IMAGE}" ]; \
-		then cp Dockerfile Dockerfile.build; \
+		then \
+			cp $${dockerfile:-Dockerfile} Dockerfile.build; \
 		else \
-			echo "FROM ${OWNER}/${BASE_IMAGE}:${BASE_REVISION}" > Dockerfile.build; \
-			tail -n +2 Dockerfile >> Dockerfile.build; \
+			echo "FROM ${OWNER}/${BASE_IMAGE}:latest" > Dockerfile.build; \
+			tail -n +2 $${dockerfile:-Dockerfile} >> Dockerfile.build; \
 		fi 
-	docker build $(foreach i,$(ARGS), --build-arg $(i)) -t ${OWNER}/${IMAGE}:${REVISION} -f Dockerfile.build . \
-		&& docker tag ${OWNER}/${IMAGE}:${REVISION} ${OWNER}/${IMAGE}:latest \
+	docker build $(foreach i,$(args), --build-arg $(i)) -t ${OWNER}/${IMAGE} -f Dockerfile.build . \
 		&& touch $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE} 
 
 untag:
@@ -16,21 +17,7 @@ untag:
 		rm $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}; \
 		fi
 
-build: 
-	mkdir -p ${TAGS_DIR}
-	if [ ! -f $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE} ]; \
-		then if docker pull ${OWNER}/${IMAGE}:${REVISION}; \
-			then touch $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}; \
-			else $(MAKE) -f ../Makefile.docker $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}; \
-			fi; \
-		fi
 $(TAGS_DIR): 
 	mkdir -p $@
 
 update: untag ${TAGS_DIR} $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}
-#	mkdir -p ${TAGS_DIR}
-#	$(MAKE) -f ../Makefile.docker $(TAGS_DIR)/${OWNER}+${IMAGE}+${REVISION}.${BASE_IMAGE}
-
-push:
-	docker push ${OWNER}/${IMAGE}:${REVISION} 
-	docker push ${OWNER}/${IMAGE}:latest

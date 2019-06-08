@@ -85,6 +85,7 @@ RUN bash -c "for i in {1..9}; do mkdir -p /usr/share/man/man\$i; done" \
     libfreetype6-dev \
     pkg-config \
     libopenblas-dev \
+    liblapack-dev \
     swig \
     p7zip-full \
     libzmq3-dev \
@@ -98,12 +99,30 @@ RUN bash -c "for i in {1..9}; do mkdir -p /usr/share/man/man\$i; done" \
     libgmp3-dev \
     libfreerdp-dev \
     libltdl-dev \
+    libopencv-dev \
+    ninja-build \
+    libjemalloc-dev \
+    libomp-dev \
+    libssh2-1-dev \
+    libgmp-dev \
+    libdsfmt-dev \
+    libatomic1 \
+    libmbedtls-dev \
+    libgit2-dev \
+    libcurl4-gnutls-dev \
+    libmpfr-dev \
+    libpcre2-dev \  
+    libssl-dev \
+    libopenlibm-dev \
+    \
+    m4 \
  && add-apt-repository "deb http://archive.canonical.com/ubuntu $(lsb_release -sc) partner" \
  && apt-get install -qy --no-install-recommends \
     adobe-flashplugin \
  ## AMD APU processors \
- #&& apt-get install -qy --no-install-recommends \
+ # && apt-get install -qy --no-install-recommends \
  #   mesa-opencl-icd \ 
+ # && apt-get purge cmake \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && locale-gen en_US.UTF-8 \
@@ -139,6 +158,12 @@ RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezo
  && mkdir -p /etc/jupyter \
  && chown lab:users -R /etc/jupyter 
 
+RUN set -ex \
+ && cd /tmp \
+ && curl -L https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Linux-x86_64.sh -o cmake-3.14.5.sh \
+ && bash cmake-3.14.5.sh --skip-license --prefix=/usr \
+ && rm -rf cmake* 
+
 USER lab
 ENV PYTHON_VERSION=3.7.3
 RUN mkdir ${HOME}/work \
@@ -163,7 +188,6 @@ RUN conda install -y \
     matplotlib \
     ipython \
     cython \
-    jemalloc \
     sqlalchemy \
     pexpect \
     scrapy \
@@ -191,11 +215,13 @@ RUN pip install -U --no-cache-dir \
     singleton_decorator \
     mmh3 \
     fastecdsa \
+    rsa \
     Wand \
     pybind11 \
     weasyprint \
     pyopencl \
-    opencv-python \
+    opencv-python-headless \
+    opencv-contrib-python-headless \
     selenium \
     pyvirtualdisplay \
     pyscreenshot 

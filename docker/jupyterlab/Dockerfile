@@ -71,31 +71,6 @@ RUN pip install -U --no-cache-dir \
 # Import matplotlib the first time to build the font cache.
 RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" 
 
-# JupyterLab
-RUN pip install -U --no-cache-dir 'jupyterlab>=0.35,<1.0' \
- && jupyter nbextension enable --py widgetsnbextension --sys-prefix \
- && jupyter labextension install \
-        @jupyter-widgets/jupyterlab-manager@^0.38 \
-        jupyterlab_bokeh \
- && jupyter labextension install @jupyterlab/github \
- && pip install --no-cache-dir jupyterlab_github \
- && jupyter serverextension enable --py jupyterlab_github \
- && pip install --no-cache-dir git+https://github.com/googlecolab/jupyter_http_over_ws#egg=jupyter_http_over_ws \
- && jupyter serverextension enable --py jupyter_http_over_ws \
- && pip install -U --no-cache-dir jupyterlab-git \
- && jupyter serverextension enable --py jupyterlab_git \
- && jupyter labextension install \
-        @jupyterlab/mp4-extension \
-        @jupyterlab/google-drive \
-        @jupyterlab/git \
-        dask-labextension \
- && rm -rf ${CONDA_DIR}/share/jupyter/lab/staging \
- && rm -rf ${HOME}/.cache/yarn \
- && rm -rf ${HOME}/.node-gyp \
- && conda clean -tipsy \
- && npm cache clean --force \
- && rm -rf ${CONDA_DIR}/pkgs/* 
-
 # Other
 RUN pip install -U --no-cache-dir \
     git+https://github.com/sudachen/colabtools \
@@ -114,9 +89,54 @@ RUN case "$CPGPU" in gpu) tfsfx=-gpu; tcdr=cu100;; *) tfsfx=; tcdr=cpu;; esac \
     tensorflow$tfsfx==1.13.1 \
     jupyter-tensorboard \
     https://download.pytorch.org/whl/$tcdr/torch-1.1.0-cp37-cp37m-linux_x86_64.whl \
-    https://download.pytorch.org/whl/$tcdr/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl \
+    https://download.pytorch.org/whl/$tcdr/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl 
+
+RUN echo "sed -e 's:${CONDA_DIR}/bin/python:${CONDA_DIR}/bin/python-jl:g' \
+              -i  ${CONDA_DIR}/share/jupyter/kernels/python3/kernel.json" \
+      | bash
+
+# JupyterLab
+RUN pip install -U --no-cache-dir 'jupyterlab>=0.35,<1.0' \
+ && jupyter nbextension enable --py widgetsnbextension --sys-prefix \
+ && jupyter labextension install \
+      @jupyter-widgets/jupyterlab-manager@^0.38 \
+      jupyterlab_bokeh \
+ && jupyter labextension install @jupyterlab/github \
+ && pip install --no-cache-dir jupyterlab_github \
+ && jupyter serverextension enable --py jupyterlab_github \
+ && pip install --no-cache-dir git+https://github.com/googlecolab/jupyter_http_over_ws#egg=jupyter_http_over_ws \
+ && jupyter serverextension enable --py jupyter_http_over_ws \
+ && pip install -U --no-cache-dir jupyterlab-git \
+ && jupyter serverextension enable --py jupyterlab_git \
+ && jupyter labextension install \
+      @jupyterlab/mp4-extension \
+      @jupyterlab/google-drive \
+      @jupyterlab/git \
+      dask-labextension \
  && jupyter labextension install jupyterlab_tensorboard \
- && jupyter labextension install jupyterlab-drawio
+ && jupyter labextension install jupyterlab-drawio \
+ && pip install -U --no-cache-dir \
+      dash==0.21.1 \
+      dash-renderer==0.13.0 \
+      dash-html-components==0.11.0 \
+      dash-core-components==0.23.0 \
+      plotly \
+      jupyterlab-dash==0.1.0a2 \
+ && jupyter labextension install jupyterlab-dash@0.1.0-alpha.2 \
+ && jupyter labextension install @ryantam626/jupyterlab_code_formatter \
+ && pip install -U --no-cache-dir jupyterlab_code_formatter \
+ && jupyter serverextension enable --py jupyterlab_code_formatter \
+ && jupyter labextension install @krassowski/jupyterlab_go_to_definition \
+ && pip install -U --no-cache-dir sidecar \
+ && jupyter labextension install @jupyter-widgets/jupyterlab-manager \
+ && jupyter labextension install @jupyter-widgets/jupyterlab-sidecar \
+ && jupyter lab build \
+ && rm -rf ${CONDA_DIR}/share/jupyter/lab/staging \
+ && rm -rf ${HOME}/.cache/yarn \
+ && rm -rf ${HOME}/.node-gyp \
+ && conda clean -tipsy \
+ && npm cache clean --force \
+ && rm -rf ${CONDA_DIR}/pkgs/* 
 
 # Init
 USER root

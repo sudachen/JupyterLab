@@ -1,0 +1,72 @@
+version: '2.4'
+services:
+  db:
+    image: sudachen/mysql-db:latest
+    container_name: db
+    restart: always
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ${HOME}/JupyterLab/MySql:/var/lib/mysql:Z
+    environment:
+      MYSQL_ROOT_PASSWORD: toor
+      MYSQL_DATABASE: lab
+      MYSQL_USER: lab
+      MYSQL_PASSWORD: lab
+    networks:
+      local_net:
+        aliases:
+          - mysql
+          - db
+    command: --character-set-server=utf8mb4
+
+  mongo:
+    image: sudachen/mongo-db:latest
+    container_name: mongo
+    restart: always
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - ${HOME}/JupyterLab/Mongo/db:/data/db:Z
+      - ${HOME}/JupyterLab/Mongo/configdb:/data/configdb:Z
+    networks:
+      local_net:
+        aliases:
+          - mongo
+
+  jupyter:
+    build: ./jupyter
+    depends_on:
+      - db
+      - mongo
+    container_name: jupyter
+    hostname: localhost
+    restart: always
+    ports:
+      - "127.0.0.1:8880-8889:8880-8889"
+    volumes:
+      - ${HOME}/.ssh:/lab/.ssh:ro
+      - ${HOME}/Work:/lab/work/Work:Z
+      - ${HOME}/Projects:/lab/work/Projects
+      - ${HOME}/JupyterLab/Jars:/lab/jars:ro
+      - ${HOME}/JupyterLab/Config/Jars:/lab/jars2:ro
+      - ${HOME}/JupyterLab/Config/Settings:/lab/.jupyter/lab/user-settings
+    environment:
+      PYPY_GC_MAX: 3GB
+      PYPY_GC_MAJOR_COLLECT: 1.2
+      SHELL: /bin/bash
+      DATABASE_URL: mysql+pymysql://lab:lab@mysql:3306/lab?charset=utf8
+      GITHUB_ACCESS_TOKEN: None
+    networks:
+      - local_net
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    dns:
+      - 8.8.8.8
+
+networks:
+  local_net:
+    driver: bridge
+
