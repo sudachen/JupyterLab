@@ -1,4 +1,4 @@
-FROM sudachen/python3:latest
+FROM sudachen/python3-base:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
 
 ENV CPGPU=gpu
@@ -9,6 +9,7 @@ ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0"
 ENV PATH=/usr/local/cuda-10.0/bin:$PATH
+ENV CUDA_HOME=/usr/local/cuda-10.0
 
 USER root
 RUN  curl -L $JUPYTERLAB_URL/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb -o /tmp/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb \

@@ -1,4 +1,4 @@
-FROM sudachen/python3:latest
+FROM sudachen/python3-base:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
 
 ENV CPGPU=gpu

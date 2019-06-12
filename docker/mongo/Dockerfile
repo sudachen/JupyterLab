@@ -24,7 +24,7 @@ RUN set -ex; \
 	\
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-		wget \
+		curl \
 	; \
 	if ! command -v gpg > /dev/null; then \
 		apt-get install -y --no-install-recommends gnupg dirmngr; \
@@ -32,21 +32,16 @@ RUN set -ex; \
 	rm -rf /var/lib/apt/lists/*; \
 	\
 	dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')"; \
-	wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch"; \
-	wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc"; \
+	curl -L -o /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch"; \
 	export GNUPGHOME="$(mktemp -d)"; \
-	gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
-	gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
-	command -v gpgconf && gpgconf --kill all || :; \
-	rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc; \
 	chmod +x /usr/local/bin/gosu; \
 	gosu --version; \
 	gosu nobody true; \
 	\
-	wget -O /js-yaml.js "https://github.com/nodeca/js-yaml/raw/${JSYAML_VERSION}/dist/js-yaml.js"; \
+	curl -L -o /js-yaml.js "https://github.com/nodeca/js-yaml/raw/${JSYAML_VERSION}/dist/js-yaml.js"; \
 # TODO some sort of download verification here
 	\
-	apt-get purge -y --auto-remove wget
+	apt-get purge -y --auto-remove curl
 
 RUN mkdir /docker-entrypoint-initdb.d
 

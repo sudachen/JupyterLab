@@ -31,24 +31,18 @@ RUN mkdir -p ${GCLOUD_DIR} \
 # Other
 RUN conda install -y \
     notebook \
-    icu \
     xarray \
     sympy \
     bokeh \
     statsmodels \
-    h5py \
     seaborn \
     openpyxl \
     geopandas \
     rtree \
     pydrive \
-    psycopg2 \
-    pyarrow \
     sqlalchemy-redshift \
     ipython-sql \
-    pytables \
     xlrd \
-    numba \
     geopy \
     line_profiler \
     xtensor-python \
@@ -64,7 +58,6 @@ RUN conda install -y \
  && rm -rf ${CONDA_DIR}/pkgs/*
 
 RUN pip install -U --no-cache-dir \
-    pymc \
     pythran \
     python-Levenshtein 
 
@@ -84,7 +77,7 @@ RUN pip install -U --no-cache-dir \
 # Tensorboard/Tf/Torch/CV/DrawIO
 RUN case "$CPGPU" in gpu) tfsfx=-gpu; tcdr=cu100;; *) tfsfx=; tcdr=cpu;; esac \
  && pip install -U --no-cache-dir \
-    tb-nightly \
+    tensorboard \
     future \
     tensorflow$tfsfx==1.13.1 \
     jupyter-tensorboard \
@@ -96,52 +89,68 @@ RUN echo "sed -e 's:${CONDA_DIR}/bin/python:${CONDA_DIR}/bin/python-jl:g' \
       | bash
 
 # JupyterLab
-RUN pip install -U --no-cache-dir 'jupyterlab>=0.35,<1.0' \
+RUN set -ex \
+ && pip install -U --no-cache-dir \
+     'jupyterlab>=0.35,<1.0' \
  && jupyter nbextension enable --py widgetsnbextension --sys-prefix \
  && jupyter labextension install \
-      @jupyter-widgets/jupyterlab-manager@^0.38 \
-      jupyterlab_bokeh \
- && jupyter labextension install @jupyterlab/github \
- && pip install --no-cache-dir jupyterlab_github \
- && jupyter serverextension enable --py jupyterlab_github \
- && pip install --no-cache-dir git+https://github.com/googlecolab/jupyter_http_over_ws#egg=jupyter_http_over_ws \
- && jupyter serverextension enable --py jupyter_http_over_ws \
- && pip install -U --no-cache-dir jupyterlab-git \
- && jupyter serverextension enable --py jupyterlab_git \
- && jupyter labextension install \
-      @jupyterlab/mp4-extension \
-      @jupyterlab/google-drive \
-      @jupyterlab/git \
-      dask-labextension \
- && jupyter labextension install jupyterlab_tensorboard \
- && jupyter labextension install jupyterlab-drawio \
+     @jupyter-widgets/jupyterlab-manager@^0.38 \
  && pip install -U --no-cache-dir \
-      dash==0.21.1 \
-      dash-renderer==0.13.0 \
-      dash-html-components==0.11.0 \
-      dash-core-components==0.23.0 \
-      plotly \
-      jupyterlab-dash==0.1.0a2 \
- && jupyter labextension install jupyterlab-dash@0.1.0-alpha.2 \
- && jupyter labextension install @ryantam626/jupyterlab_code_formatter \
- && pip install -U --no-cache-dir jupyterlab_code_formatter \
- && jupyter serverextension enable --py jupyterlab_code_formatter \
- && jupyter labextension install @krassowski/jupyterlab_go_to_definition \
- && pip install -U --no-cache-dir sidecar \
- && jupyter labextension install @jupyter-widgets/jupyterlab-manager \
- && jupyter labextension install @jupyter-widgets/jupyterlab-sidecar \
- && jupyter lab build \
- && rm -rf ${CONDA_DIR}/share/jupyter/lab/staging \
- && rm -rf ${HOME}/.cache/yarn \
- && rm -rf ${HOME}/.node-gyp \
- && conda clean -tipsy \
- && npm cache clean --force \
- && rm -rf ${CONDA_DIR}/pkgs/* 
+     dash==0.21.1 \
+     dash-renderer==0.13.0 \
+     dash-html-components==0.11.0 \
+     dash-core-components==0.23.0 \
+     plotly \
+     jupyterlab-dash==0.1.0a2 \
+     sidecar \
+     jupyterlab_github \
+     git+https://github.com/googlecolab/jupyter_http_over_ws#egg=jupyter_http_over_ws \
+     jupyterlab-git \
+     jupyterlab_code_formatter \
+ && jupyter labextension install \
+     @jupyterlab/github \
+     @jupyterlab/mp4-extension \
+     @jupyterlab/google-drive \
+     @jupyterlab/git \
+     @jupyter-widgets/jupyterlab-sidecar \
+     dask-labextension \
+     jupyterlab_bokeh \
+     jupyterlab_tensorboard \
+     jupyterlab-drawio \
+     jupyterlab-dash@0.1.0-alpha.2 \
+     @ryantam626/jupyterlab_code_formatter \
+     @krassowski/jupyterlab_go_to_definition \
+ && jupyter serverextension enable --py \
+     jupyterlab_github \
+     jupyter_http_over_ws \
+     jupyterlab_git \
+     jupyterlab_code_formatter 
+ 
+RUN true \
+ && julia -e 'using Pkg; Pkg.add(PackageSpec(name="WebIO",rev="master"))' \
+ && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Interact",rev="master"))' \
+ && julia -e 'using Pkg; Pkg.add(PackageSpec(name="InteractBulma",rev="master"))' \
+ && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Vue",rev="master"))' \
+ && julia -e 'using Pkg; Pkg.add(PackageSpec(name="JSExpr",rev="master"))' \
+ && screen -S julia1_img -d -m -s julia \
+ && screen -S julia1_img -p 0 -X stuff '^M]^Mprecompile^M^M^M' \
+ && sp='/-\|' \
+ && pkgver=${JULIA_VERSION%.*} \
+ && printf 'Precompiling Julia Packages...                       ' \
+ && sleep 1 \
+ && while [ "`screen -S julia1_img -p 0 -X hardcopy /tmp/screen && tac /tmp/screen | grep '.' -a -m 1`" != "(v$pkgver) pkg>" ]; do \
+       printf "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b%.1s %-20s" "$sp" "$(tac /tmp/screen | grep '.' -a -m 1 | awk '{ print substr($(NF-1),1,20) }')" ; \
+       sp=${sp#?}${sp%???}; \
+       sleep 1; \
+    done \
+ && cat /tmp/screen \
+ && julia -e 'using Pkg; Pkg.gc()' \
+ && julia -e 'using WebIO; using Interact; using IJulia'
 
-# Init
-USER root
+RUN set -ex \
+ && jupyter lab build 
+
 COPY --chown=lab:users jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
-
-USER lab
+RUN mkdir -p ${HOME}/.jupyter/lab/workspaces
 EXPOSE 8888
 CMD [ "jupyter", "lab" ]

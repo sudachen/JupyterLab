@@ -57,8 +57,6 @@ RUN set -ex \
  && julia -e 'using Pkg; Pkg.add("IJulia")' \
  && julia -e 'using Pkg; Pkg.add("ScikitLearn")' 
 RUN set -ex \
- && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Interact",rev="master"))' 
-RUN set -ex \
  && julia -e 'using Pkg; Pkg.add("Colors")' \
  && julia -e 'using Pkg; Pkg.add("ImageDraw")' \
  && julia -e 'using Pkg; Pkg.add("ImageInTerminal")' \

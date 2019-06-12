@@ -8,10 +8,10 @@ ENV JULIA_STARTUP=${JULIA_BASE}/etc/julia/startup.jl
 # Julia
 USER root
 ADD julia-${JULIA_VERSION}-cpu-pkgs.tar.bz2 ${HOME}
-ADD libmxnet-${CPGPU}.tar.gz /
 RUN ln -fs ${JULIA_BASE}/bin/julia /usr/local/bin/julia 
 
 USER lab
+
 RUN set -ex \
  && julia -e 'using Pkg; Pkg.update()' \
  && julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/sudachen/MXNet.jl.git"))' \

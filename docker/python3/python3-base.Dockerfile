@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
-ENV BUILD 20190602
+ENV BUILD 20190609
 ENV USER=lab
 ENV UID=1000
 ENV GID=100
@@ -17,9 +17,6 @@ ENV PATH=${CONDA_DIR}/bin:$PATH
 ENV TZ=America/Santiago
 
 USER root
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
 
 RUN bash -c "for i in {1..9}; do mkdir -p /usr/share/man/man\$i; done" \
  && apt-get update --fix-missing \
@@ -97,7 +94,7 @@ RUN bash -c "for i in {1..9}; do mkdir -p /usr/share/man/man\$i; done" \
     vnc4server \
     scrot \
     libgmp3-dev \
-    libfreerdp-dev \
+#    libfreerdp-dev \
     libltdl-dev \
     libopencv-dev \
     ninja-build \
@@ -150,7 +147,7 @@ RUN wget $JUPYTERLAB_URL/intel-cpu-ocl.7z -q -O /tmp/intel-cpu-ocl.7z --no-check
  && echo "/opt/intel/opencl-1.2-6.4.0.25/lib64/libintelocl.so" > /etc/OpenCL/vendors/intel-cpu.icd
 
 RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone \
- && useradd -m -s ${SHELL} -N -u ${UID} lab \
+ && useradd -m -s ${SHELL} -N -u ${UID} lab -d ${HOME} \
  && mkdir -p ${CONDA_DIR} \
  && chmod g+w /etc/passwd /etc/group \
  && chown lab:users -R ${HOME} \
@@ -184,7 +181,6 @@ RUN conda install -y \
     numpy \
     pandas \
     scipy \
-    scikit-learn \
     matplotlib \
     ipython \
     cython \
@@ -198,6 +194,9 @@ RUN conda install -y \
     circus \
     urllib3 \
     hdf5 \
+    h5py \
+    pyarrow \
+    pytables \
     pymysql \
     beautifulsoup4 \
     icu \
@@ -205,17 +204,22 @@ RUN conda install -y \
     nodejs \
     protobuf \
     dask \
+    rsa \
+    gmpy2 \
+    mpfr \
  && conda remove -y --force qt \
  && conda clean -tipsy \
  && rm -rf ${CONDA_DIR}/pkgs/*
 
 RUN pip install -U --no-cache-dir \
+    pymc \
+    scikit-learn \
+    psycopg2-binary \
     pymongo \
     pyotp \
     singleton_decorator \
     mmh3 \
     fastecdsa \
-    rsa \
     Wand \
     pybind11 \
     weasyprint \
@@ -224,7 +228,14 @@ RUN pip install -U --no-cache-dir \
     opencv-contrib-python-headless \
     selenium \
     pyvirtualdisplay \
-    pyscreenshot 
+    pyscreenshot \
+    rdpy 
 
+USER root
+COPY tini-${TINI_VERSION} /tini
+RUN chmod +x /tini
+ENTRYPOINT ["/tini", "--"]
+
+USER lab
 WORKDIR $HOME
 
