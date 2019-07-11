@@ -1,4 +1,4 @@
-FROM sudachen/julia1-gpu:latest
+FROM sudachen/julia11:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
 ENV GCLOUD_DIR ${HOME}/.google_cloud
 ENV CLOUDSDK_ROOT_DIR=$GCLOUD_DIR \
@@ -6,31 +6,38 @@ ENV CLOUDSDK_ROOT_DIR=$GCLOUD_DIR \
     PATH=$PATH:$GCLOUD_DIR/bin \
     DATALAB_ROOT=$HOME 
 
-USER root
-RUN apt-get update && apt-get clean  
-
-# Python 2.7
 USER lab
-RUN conda create -n python27 python=2.7 \
- && conda install -n python27 -c conda-forge \
-       nomkl \
-       numpy \
- && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/*
 
-# COLAB
-RUN mkdir -p ${GCLOUD_DIR} \
+RUN set -ex \
+ && sudo apt-get update \
+ && sudo apt-get clean  \
+ && conda create -n python27 python=2.7 \
+ && conda install -n python27 -c conda-forge \
+    nomkl \
+    numpy \
+ && conda clean -tipsy \
+ && rm -rf ${CONDA_DIR}/pkgs/* \
+ && mkdir -p ${GCLOUD_DIR} \
  && curl -L $JUPYTERLAB_URL/google-cloud-sdk-202.0.0-linux-x86_64.tgz \
     | tar zx -C ${GCLOUD_DIR} --strip-components=1 \
  && pip install -U --no-cache-dir google-auth portpicker \
  && mkdir -p ${HOME}/content/datalab \
  && mkdir -p ${HOME}/.config/gcloud \
  && ln -s ${HOME}/.config/gcloud ${HOME}/content/datalab/.config \
- && ln -s ${HOME}/.config/gcloud ${HOME}/content/.config 
-
-# Other
-RUN conda install -y \
+ && ln -s ${HOME}/.config/gcloud ${HOME}/content/.config \
+ && cd /tmp \
+ && git clone https://github.com/rkern/line_profiler.git \
+ && find line_profiler -name '*.pyx' -exec cython {} \; \
+ && cd line_profiler \
+ && python setup.py install \
+ && cd \
+ && pip install -U --no-cache-dir \
     notebook \
+    ipywidgets \
+    \
+    future \
+    memory_profiler \
+    \
     xarray \
     sympy \
     bokeh \
@@ -44,54 +51,50 @@ RUN conda install -y \
     ipython-sql \
     xlrd \
     geopy \
-    line_profiler \
-    xtensor-python \
     graphviz \
-    python-graphviz \
     pydot \
     networkx \
     \
     folium \
-    ipywidgets \
-    ipyleaflet  \
- && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/*
-
-RUN pip install -U --no-cache-dir \
+    ipyleaflet \
+    \
     pythran \
-    python-Levenshtein 
-
-# Import matplotlib the first time to build the font cache.
-RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" 
-
-# Other
-RUN pip install -U --no-cache-dir \
+    python-Levenshtein \
+    \
     git+https://github.com/sudachen/colabtools \
     'requests-oauthlib==1.1.0' \
     google-api-python-client \
     oauth2client \
     pydrive \
- && pip install -U --no-cache-dir pystan \
- && pip install -U --no-cache-dir fbprophet
-
-# Tensorboard/Tf/Torch/CV/DrawIO
-RUN case "$CPGPU" in gpu) tfsfx=-gpu; tcdr=cu100;; *) tfsfx=; tcdr=cpu;; esac \
- && pip install -U --no-cache-dir \
-    tensorboard \
-    future \
-    tensorflow$tfsfx==1.13.1 \
-    jupyter-tensorboard \
-    https://download.pytorch.org/whl/$tcdr/torch-1.1.0-cp37-cp37m-linux_x86_64.whl \
-    https://download.pytorch.org/whl/$tcdr/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl 
-
-RUN echo "sed -e 's:${CONDA_DIR}/bin/python:${CONDA_DIR}/bin/python-jl:g' \
+ #&& pip install -U --no-cache-dir pystan \
+ #&& pip install -U --no-cache-dir fbprophet \
+ && pip install -U --no-cache-dir plotly \
+ && pip install -U --no-cache-dir pyct \
+ && rm -rf holoviews \
+ && cd /tmp \
+ && git clone --branch v0.7.0 git://github.com/pyviz/datashader.git \
+ && cd datashader \
+ && python setup.py install \
+ && cd .. \
+ && rm -rf datashader \
+ && cd /tmp \
+ && git clone --branch v0.6.0 git://github.com/pyviz/panel.git \
+ && cd panel \
+ && python setup.py install \
+ && cd .. \
+ && cd /tmp \
+ && git clone --branch v1.12.3 git://github.com/pyviz/holoviews.git \
+ && cd holoviews \
+ && python setup.py install \
+ && cd .. \
+ && rm -rf /tmp/* \
+ && echo "sed -e 's:${CONDA_DIR}/bin/python:${CONDA_DIR}/bin/python-jl:g' \
               -i  ${CONDA_DIR}/share/jupyter/kernels/python3/kernel.json" \
-      | bash
-
-# JupyterLab
-RUN set -ex \
+      | bash \
  && pip install -U --no-cache-dir \
      'jupyterlab>=0.35,<1.0' \
+     tensorboard \
+     jupyter-tensorboard \
  && jupyter nbextension enable --py widgetsnbextension --sys-prefix \
  && jupyter labextension install \
      @jupyter-widgets/jupyterlab-manager@^0.38 \
@@ -100,7 +103,6 @@ RUN set -ex \
      dash-renderer==0.13.0 \
      dash-html-components==0.11.0 \
      dash-core-components==0.23.0 \
-     plotly \
      jupyterlab-dash==0.1.0a2 \
      sidecar \
      jupyterlab_github \
@@ -120,18 +122,18 @@ RUN set -ex \
      jupyterlab-dash@0.1.0-alpha.2 \
      @ryantam626/jupyterlab_code_formatter \
      @krassowski/jupyterlab_go_to_definition \
+     @pyviz/jupyterlab_pyviz \
  && jupyter serverextension enable --py \
      jupyterlab_github \
      jupyter_http_over_ws \
      jupyterlab_git \
-     jupyterlab_code_formatter 
- 
-RUN true \
+     jupyterlab_code_formatter \
  && julia -e 'using Pkg; Pkg.add(PackageSpec(name="WebIO",rev="master"))' \
  && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Interact",rev="master"))' \
  && julia -e 'using Pkg; Pkg.add(PackageSpec(name="InteractBulma",rev="master"))' \
  && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Vue",rev="master"))' \
  && julia -e 'using Pkg; Pkg.add(PackageSpec(name="JSExpr",rev="master"))' \
+ && set +x \
  && screen -S julia1_img -d -m -s julia \
  && screen -S julia1_img -p 0 -X stuff '^M]^Mprecompile^M^M^M' \
  && sp='/-\|' \
@@ -144,13 +146,13 @@ RUN true \
        sleep 1; \
     done \
  && cat /tmp/screen \
+ && set -x \
  && julia -e 'using Pkg; Pkg.gc()' \
- && julia -e 'using WebIO; using Interact; using IJulia'
-
-RUN set -ex \
- && jupyter lab build 
+ && julia -e 'using WebIO; using Interact; using IJulia' \
+ && jupyter lab build  \
+ && rm -rf /tmp/* \
+ && mkdir -p ${HOME}/.jupyter/lab/workspaces
 
 COPY --chown=lab:users jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
-RUN mkdir -p ${HOME}/.jupyter/lab/workspaces
 EXPOSE 8888
 CMD [ "jupyter", "lab" ]

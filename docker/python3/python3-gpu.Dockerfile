@@ -35,10 +35,12 @@ RUN  curl -L $JUPYTERLAB_URL/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb -o /tmp/c
   && rm -rf /var/lib/apt/lists/* \
   && curl -L $JUPYTERLAB_URL/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb -o /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
   && dpkg -i /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
-  && rm -r /tmp/libcudnn7_7.6.0.64-1+cuda10.0_amd64.deb \
+  && rm -rf /tmp/* \
   && echo "/usr/local/conda-10.0/lib64" > /etc/ld.so.conf.d/cuda-10.0.conf \
   && ldconfig \
   && usermod -aG video lab \
   && chown lab:users $HOME/.[^.]* \
   && chown lab:users -R $HOME/.gnu*
+
+USER lab
 

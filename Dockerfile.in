@@ -1,26 +1,28 @@
 FROM sudachen/jupyterlab:latest
 
-USER root
-RUN mkdir -p ${SPARK_HOME}/conf \
-    && echo "spark.ui.port: 8884" >> ${SPARK_HOME}/conf/spark-defaults.conf
 COPY --chown=lab:users jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
 COPY --chown=lab:users setup_kernel.py $HOME/.ipython/profile_default/startup/setup_kernel.py
 COPY joerc /root/.joerc
 COPY --chown=lab:users joerc /lab/.joerc
-RUN echo export PS1=\"\#\ \" >> /root/.bashrc \
-    && echo export LS_COLORS=\'ow=01\;36\;40\' >> /root/.bashrc \
-    && echo export 'PATH="/lab/.conda/bin:$PATH"' >> /root/.bashrc \
-    && cp /root/.joerc $HOME/ \
-    && chown lab:users $HOME/.[^.]*
+
+USER root
+RUN mkdir -p ${SPARK_HOME}/conf \
+ && echo "spark.ui.port: 8884" >> ${SPARK_HOME}/conf/spark-defaults.conf \
+ && echo export PS1=\"\#\ \" >> /root/.bashrc \
+ && echo export LS_COLORS=\'ow=01\;36\;40\' >> /root/.bashrc \
+ && echo export 'PATH="/lab/.conda/bin:$PATH"' >> /root/.bashrc \
+ && cp /root/.joerc $HOME/ \
+ && chown lab:users $HOME/.[^.]*
 
 USER lab
 RUN echo export PS1=\"\$\ \" >> ${HOME}/.bashrc  \
-    && echo export LS_COLORS=\'ow=01\;36\;40\' >> ${HOME}/.bashrc \
-    && echo export 'PATH="/lab/.conda/bin:$PATH"' >> ${HOME}/.bashrc
-RUN pip install -U --no-cache-dir \
+ && echo export LS_COLORS=\'ow=01\;36\;40\' >> ${HOME}/.bashrc \
+ && echo export 'PATH="/lab/.conda/bin:$PATH"' >> ${HOME}/.bashrc \
+ && pip install -U --no-cache-dir \
     git+https://github.com/sudachen/pygdrive-funcs.git#egg=gdrive \ 
     git+https://github.com/sudachen/ipython-sql \
-    git+https://github.com/googlecolab/jupyter_http_over_ws#egg=jupyter_http_over_ws
+    git+https://github.com/googlecolab/jupyter_http_over_ws#egg=jupyter_http_over_ws \
+ && rm -rf /tmp/*
 
 WORKDIR /lab/work
 

@@ -59,9 +59,11 @@ RUN cd /tmp \
 ENV PATH="/usr/lib/ccache:$PATH"
 
 USER lab
-RUN git clone --branch 1.4.1 --recursive https://github.com/apache/incubator-mxnet.git
+RUN pip install -U \
+    lit
 
-RUN pip install lit
+RUN git clone --branch 1.4.1 --recursive https://github.com/apache/incubator-mxnet.git
+#RUN echo "/lab/.conda/lib" >> /etc/ld.so.conf.d/conda.conf 
 
 RUN set -ex \
  && cd incubator-mxnet \

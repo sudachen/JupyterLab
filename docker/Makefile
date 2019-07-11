@@ -6,31 +6,34 @@ export TAGS_DIR=$(shell pwd)/.tags
 export dockerfile = Dockerfile
 proxy_port = 3129
 docker0 = $(shell ifconfig docker0 | awk '/inet /{ print $$2 }' )
-export args = https_proxy=http://$(docker0):$(proxy_port) http_proxy=http://$(docker0):$(proxy_port)
+export args = 
+#export args = https_proxy=http://$(docker0):$(proxy_port) http_proxy=http://$(docker0):$(proxy_port)
 BASE = python3
 DEFAULT = jupy3rlab-gpu
-ALL = python3 julia11 python3-gpu julia11-gpu jupyterlab-gpu jupy3rlab-gpu mongo-db mysql-db
-PUBLIC = julia11 julia11-gpu jupy3rlab-gpu mongo-db mysql-db
+LAB = python3-base python3-base-gpu python3-gpu julia11-gpu jupyterlab-gpu jupy3rlab-gpu mongo-db mysql-db
+CPU = python3-base python3 julia11
+ALL = python3-base python3 julia11 jupyterlab python3-base-gpu python3-gpu julia11-gpu jupyterlab-gpu jupy3rlab-gpu mongo-db mysql-db
+PUBLIC = julia11 jupyterlab julia11-gpu jupy3rlab-gpu mongo-db mysql-db
 
-all: update
+all: update-all
 
 python3-base.Update: 
 	IMAGE=$(basename $@) \
 		BASE_IMAGE= \
 		dockerfile=python3-base.Dockerfile \
 		$(MAKE) -C python3 -f $(PWD)/Makefile.docker update
-python3.Update: python3-base.Update
+python3.Update: 
 	IMAGE=$(basename $@) \
 		BASE_IMAGE=python3-base \
 		dockerfile=python3.Dockerfile \
 		$(MAKE) -C python3 -f $(PWD)/Makefile.docker update
 
-python3-base-gpu.Update: python3-base.Update
+python3-base-gpu.Update: 
 	IMAGE=$(basename $@) \
 		BASE_IMAGE=python3-base \
 		dockerfile=python3-gpu.Dockerfile \
 		$(MAKE) -C python3 -f $(PWD)/Makefile.docker update
-python3-gpu.Update: python3-base-gpu.Update
+python3-gpu.Update: 
 	IMAGE=$(basename $@) \
 	BASE_IMAGE=python3-base-gpu \
 	dockerfile=python3.Dockerfile \
@@ -42,6 +45,8 @@ julia11-gpu.Update:
 	IMAGE=$(basename $@) BASE_IMAGE=python3-gpu $(MAKE) -C julia11 -f $(PWD)/Makefile.docker update
 jupyterlab-gpu.Update: 
 	IMAGE=$(basename $@) BASE_IMAGE=julia11-gpu $(MAKE) -C jupyterlab -f $(PWD)/Makefile.docker update
+jupyterlab.Update: 
+	IMAGE=$(basename $@) BASE_IMAGE=julia11 $(MAKE) -C jupyterlab -f $(PWD)/Makefile.docker update
 jupy3rlab-gpu.Update: 
 	IMAGE=$(basename $@) BASE_IMAGE=jupyterlab-gpu $(MAKE) -C jupy3rlab -f $(PWD)/Makefile.docker update
 mongo-db.Update:
@@ -76,7 +81,9 @@ proxy.Up:
 proxy.Down: 
 	-docker kill squid-docker-proxy
 
-update: proxy.Up $(foreach img, $(ALL), $(img).Update)
+update-all: $(foreach img, $(ALL), $(img).Update)
+update-lab: $(foreach img, $(LAB), $(img).Update)
+update-cpu: $(foreach img, $(CPU), $(img).Update)
 
 retag:  $(foreach img, $(PUBLIC), $(img).Retag) 
 push:   $(foreach img, $(PUBLIC), $(img).Push) 

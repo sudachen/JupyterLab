@@ -117,7 +117,7 @@ if [ ! -f Config/docker-compose.yml ]; then
     elif [ -f docker-compose.yml ]; then 
         mv docker-compose.yml Config/docker-compose.yml
     else 
-        cp docker-compose.in.yml Config/docker-compose.yml
+        cp docker-compose.yml.in Config/docker-compose.yml
     fi
 fi    
 

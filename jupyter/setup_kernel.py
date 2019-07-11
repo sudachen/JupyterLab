@@ -4,6 +4,8 @@ ip = get_ipython()
 ip.magic('automagic off')
 ip.magic('load_ext sql')
 ip.magic('load_ext autoreload')
+ip.magic('load_ext line_profiler')
+ip.magic('load_ext memory_profiler')
 ip.magic('config SqlMagic.autopandas = True')
 
 ip.run_cell('import matplotlib.pyplot as plt')
@@ -22,8 +24,10 @@ import warnings
 warnings.filterwarnings("ignore",category=FutureWarning)
 ''')
 
-if getattr(sys,'pypy_version_info',None) is None:
-    ip.magic('matplotlib inline')
-else:
-    os.environ['PATH'] = '/opt/pypy/bin:'+os.environ['PATH']
-
+try:
+    if getattr(sys,'pypy_version_info',None) is None:
+        ip.magic('matplotlib inline')
+    else:
+        os.environ['PATH'] = '/opt/pypy/bin:'+os.environ['PATH']
+except:
+    pass

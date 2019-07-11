@@ -1,31 +1,41 @@
 FROM sudachen/jupyterlab:latest
 LABEL maintainer="Alexey Sudachen <alexey@sudachen.name>"
+ENV PATH "$HOME/.cargo/bin:$PATH"
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
 
 USER root
 RUN apt install -qy --no-install-recommends \
       ca-certificates-java \
       openjdk-8-jdk-headless \
-      maven 
+      maven \
+ && rm -rf /tmp/* 
 USER lab
 
+RUN set -ex \
 # Rust
-RUN curl https://sh.rustup.rs -sSf | bash -s - --default-toolchain stable -y
-ENV PATH "$HOME/.cargo/bin:$PATH"
-RUN cargo install evcxr_jupyter \
- && evcxr_jupyter --install 
-RUN sed ~/.local/share/jupyter/kernels/rust/kernel.json -i -e "s/_name\": \"Rust\"/_name\": \"Rust `rustc --version | cut -f 2 -d ' '`\"/g"    
-
+ && curl https://sh.rustup.rs -sSf | bash -s - --default-toolchain stable -y \
+ && cargo install evcxr_jupyter \
+ && evcxr_jupyter --install \
+ && sed ~/.local/share/jupyter/kernels/rust/kernel.json -i -e "s/_name\": \"Rust\"/_name\": \"Rust `rustc --version | cut -f 2 -d ' '`\"/g"   \
 # Kotlin
-ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
-RUN curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
+ && curl -L -o /tmp/kotlin.7z $JUPYTERLAB_URL/kotlin-1.3.11.7z \
  && cd $HOME/.local/share/jupyter/kernels \
  && 7z x /tmp/kotlin.7z \
  && rm /tmp/kotlin.7z \
  && sed -e 's:"Kotlin":"Kotlin 1.3.11":g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json \
  && mkdir -p $ $HOME/jars \
- && sed -e 's;\${PATH};"/lab/.local/share/jupyter/kernels/kotlin/lib/*:/lab/jars/*:/lab/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json
-
-RUN pip install -U --no-cache-dir keras
+ && sed -e 's;\${PATH};"/lab/.local/share/jupyter/kernels/kotlin/lib/*:/lab/jars/*:/lab/.local/share/jars/*", "-Xmx2048m", "-Xms256m";g' -i ~/.local/share/jupyter/kernels/kotlin/kernel.json \
+# Tensorflow/Pytorch/Keras
+# && case "$CPGPU" in gpu) tfsfx=-gpu; tcdr=cu100;; *) tfsfx=; tcdr=cpu;; esac \
+# && pip install -U --no-cache-dir \
+#    tensorflow$tfsfx==1.13.1 \
+# && pip install -U --no-cache-dir \
+#    keras \
+# && pip install -U --no-cache-dir \
+#    https://download.pytorch.org/whl/$tcdr/torch-1.1.0-cp37-cp37m-linux_x86_64.whl \
+#    https://download.pytorch.org/whl/$tcdr/torchvision-0.3.0-cp37-cp37m-linux_x86_64.whl \
+# Other
+ && rm -rf /tmp/* 
 
 ## PyPy
 #USER root
@@ -91,12 +101,6 @@ RUN pip install -U --no-cache-dir keras
 # && 7z x -y /tmp/hadoop-2.8-jars.7z \
 # && rm /tmp/hadoop-2.8-jars.7z
 #RUN pip install -U --no-cache-dir git+git://github.com/sudachen/spark-sklearn#egg=spark_sklearn\&subdirectory=python 
-
-# Keras/Theano
-#USER $NB_USER
-#RUN conda install -y keras Theano \
-# && conda clean -tipsy \
-# && rm -rf ${CONDA_DIR}/pkgs/*
 
 # Java
 #USER $NB_USER

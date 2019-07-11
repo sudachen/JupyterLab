@@ -19,3 +19,22 @@ c.NotebookApp.disable_check_xsrf = True
 
 if os.environ.get('GITHUB_ACCESS_TOKEN','NONE') != 'NONE':
     c.GitHubConfig.access_token = os.environ['GITHUB_ACCESS_TOKEN']
+
+try:
+    c.NotebookApp.iopub_data_rate_limit=100000000
+except:
+    pass
+
+try:
+    def ext(a):
+        if 'line_profiler' not in a:
+            a = a + ['line_profiler']
+        if 'memory_profiler' not in a:
+            a = a + ['memory_profiler']
+        return a
+    a = c.TerminalIPythonApp.extensions
+    c.TerminalIPythonApp.extensions = ext(a)
+    a = c.InteractiveShellApp.extensions
+    c.InteractiveShellApp.extensions = ext(a)
+except:
+    pass

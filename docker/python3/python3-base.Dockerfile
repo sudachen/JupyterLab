@@ -135,7 +135,7 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8 
 ENV LC_ALL=en_US.UTF-8 
 
-RUN wget $JUPYTERLAB_URL/intel-cpu-ocl.7z -q -O /tmp/intel-cpu-ocl.7z --no-check-certificate \
+RUN curl -L $JUPYTERLAB_URL/intel-cpu-ocl.7z -o /tmp/intel-cpu-ocl.7z \
  && cd /tmp \
  && 7z x intel-cpu-ocl.7z \
  && cd intel-cpu-ocl \
@@ -144,22 +144,20 @@ RUN wget $JUPYTERLAB_URL/intel-cpu-ocl.7z -q -O /tmp/intel-cpu-ocl.7z --no-check
  && cd .. \
  && rm -r intel-cpu-ocl* \
  && mkdir -p /etc/OpenCL/vendors/ \
- && echo "/opt/intel/opencl-1.2-6.4.0.25/lib64/libintelocl.so" > /etc/OpenCL/vendors/intel-cpu.icd
-
-RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone \
+ && echo "/opt/intel/opencl-1.2-6.4.0.25/lib64/libintelocl.so" > /etc/OpenCL/vendors/intel-cpu.icd \
+ && ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone \
  && useradd -m -s ${SHELL} -N -u ${UID} lab -d ${HOME} \
  && mkdir -p ${CONDA_DIR} \
  && chmod g+w /etc/passwd /etc/group \
  && chown lab:users -R ${HOME} \
  && echo "lab ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/lab \
  && mkdir -p /etc/jupyter \
- && chown lab:users -R /etc/jupyter 
-
-RUN set -ex \
+ && chown lab:users -R /etc/jupyter \
  && cd /tmp \
  && curl -L https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Linux-x86_64.sh -o cmake-3.14.5.sh \
  && bash cmake-3.14.5.sh --skip-license --prefix=/usr \
- && rm -rf cmake* 
+ && rm -rf cmake* \ 
+ && rm -rf /tmp/*
 
 USER lab
 ENV PYTHON_VERSION=3.7.3
@@ -209,7 +207,8 @@ RUN conda install -y \
     mpfr \
  && conda remove -y --force qt \
  && conda clean -tipsy \
- && rm -rf ${CONDA_DIR}/pkgs/*
+ && rm -rf ${CONDA_DIR}/pkgs/* \
+ && rm -rf /tmp/*
 
 RUN pip install -U --no-cache-dir \
     pymc \
@@ -229,7 +228,8 @@ RUN pip install -U --no-cache-dir \
     selenium \
     pyvirtualdisplay \
     pyscreenshot \
-    rdpy 
+    rdpy \
+ && rm -rf /tmp/*
 
 USER root
 COPY tini-${TINI_VERSION} /tini

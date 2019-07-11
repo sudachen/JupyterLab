@@ -5,7 +5,7 @@ set -ex
 
 proxy_port=3129
 docker0=$(ifconfig docker0 | awk '/inet /{ print $2 }' )
-args="--build-arg https_proxy=http://$docker0:$proxy_port --build-arg http_proxy=http://$docker0:$proxy_port"
+#args="--build-arg https_proxy=http://$docker0:$proxy_port --build-arg http_proxy=http://$docker0:$proxy_port"
 
 for p in $*; do 
 case $p in 
