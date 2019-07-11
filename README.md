@@ -2,7 +2,7 @@
 
 ```
 cd $HOME
-git clone git@github.com:sudachen/JupyterLab
+git clone https://github.com/sudachen/JupyterLab.git
 cd ~/JupyterLab
 ./up
 ```
