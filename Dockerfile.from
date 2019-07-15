@@ -1,2 +1,2 @@
-FROM sudachen/jupyterlab:latest
+FROM sudachen/pylab:latest
 #FROM sudachen/jupy3rlab-gpu:latest

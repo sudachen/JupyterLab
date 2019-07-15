@@ -14,6 +14,7 @@ LAB = python3-base python3-base-gpu python3-gpu julia11-gpu jupyterlab-gpu jupy3
 CPU = python3-base python3 julia11
 ALL = python3-base python3 julia11 jupyterlab python3-base-gpu python3-gpu julia11-gpu jupyterlab-gpu jupy3rlab-gpu mongo-db mysql-db
 PUBLIC = julia11 jupyterlab julia11-gpu jupy3rlab-gpu mongo-db mysql-db
+PYLAB = python3-base  python3 pylab
 
 all: update-all
 
@@ -54,6 +55,9 @@ mongo-db.Update:
 mysql-db.Update:
 	IMAGE=$(basename $@) $(MAKE) -C mysql -f $(PWD)/Makefile.docker update
 
+pylab.Update:
+	IMAGE=$(basename $@) BASE_IMAGE=python3 $(MAKE) -C jupyterlab -f $(PWD)/Makefile.docker update	
+
 squid.Update:
 	args= IMAGE=$(basename $@) $(MAKE) -C squid -f $(PWD)/Makefile.docker update
 
@@ -84,6 +88,7 @@ proxy.Down:
 update-all: $(foreach img, $(ALL), $(img).Update)
 update-lab: $(foreach img, $(LAB), $(img).Update)
 update-cpu: $(foreach img, $(CPU), $(img).Update)
+update-pylab: $(foreach img, $(PYLAB), $(img).Update)
 
 retag:  $(foreach img, $(PUBLIC), $(img).Retag) 
 push:   $(foreach img, $(PUBLIC), $(img).Push) 

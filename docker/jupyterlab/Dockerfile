@@ -128,27 +128,29 @@ RUN set -ex \
      jupyter_http_over_ws \
      jupyterlab_git \
      jupyterlab_code_formatter \
- && julia -e 'using Pkg; Pkg.add(PackageSpec(name="WebIO",rev="master"))' \
- && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Interact",rev="master"))' \
- && julia -e 'using Pkg; Pkg.add(PackageSpec(name="InteractBulma",rev="master"))' \
- && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Vue",rev="master"))' \
- && julia -e 'using Pkg; Pkg.add(PackageSpec(name="JSExpr",rev="master"))' \
- && set +x \
- && screen -S julia1_img -d -m -s julia \
- && screen -S julia1_img -p 0 -X stuff '^M]^Mprecompile^M^M^M' \
- && sp='/-\|' \
- && pkgver=${JULIA_VERSION%.*} \
- && printf 'Precompiling Julia Packages...                       ' \
- && sleep 1 \
- && while [ "`screen -S julia1_img -p 0 -X hardcopy /tmp/screen && tac /tmp/screen | grep '.' -a -m 1`" != "(v$pkgver) pkg>" ]; do \
-       printf "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b%.1s %-20s" "$sp" "$(tac /tmp/screen | grep '.' -a -m 1 | awk '{ print substr($(NF-1),1,20) }')" ; \
-       sp=${sp#?}${sp%???}; \
-       sleep 1; \
-    done \
- && cat /tmp/screen \
- && set -x \
- && julia -e 'using Pkg; Pkg.gc()' \
- && julia -e 'using WebIO; using Interact; using IJulia' \
+ && if [ ! -z "${JULIA_VERSION}"]; then \     
+        julia -e 'using Pkg; Pkg.add(PackageSpec(name="WebIO",rev="master"))' \
+        && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Interact",rev="master"))' \
+        && julia -e 'using Pkg; Pkg.add(PackageSpec(name="InteractBulma",rev="master"))' \
+        && julia -e 'using Pkg; Pkg.add(PackageSpec(name="Vue",rev="master"))' \
+        && julia -e 'using Pkg; Pkg.add(PackageSpec(name="JSExpr",rev="master"))' \
+        && set +x \
+        && screen -S julia1_img -d -m -s julia \
+        && screen -S julia1_img -p 0 -X stuff '^M]^Mprecompile^M^M^M' \
+        && sp='/-\|' \
+        && pkgver=${JULIA_VERSION%.*} \
+        && printf 'Precompiling Julia Packages...                       ' \
+        && sleep 1 \
+        && while [ "`screen -S julia1_img -p 0 -X hardcopy /tmp/screen && tac /tmp/screen | grep '.' -a -m 1`" != "(v$pkgver) pkg>" ]; do \
+            printf "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b%.1s %-20s" "$sp" "$(tac /tmp/screen | grep '.' -a -m 1 | awk '{ print substr($(NF-1),1,20) }')" ; \
+            sp=${sp#?}${sp%???}; \
+            sleep 1; \
+        done \
+        && cat /tmp/screen \
+        && set -x \
+        && julia -e 'using Pkg; Pkg.gc()' \
+        && julia -e 'using WebIO; using Interact; using IJulia' \
+    ;fi \
  && jupyter lab build  \
  && rm -rf /tmp/* \
  && mkdir -p ${HOME}/.jupyter/lab/workspaces
