@@ -152,6 +152,7 @@ RUN set -ex \
         && julia -e 'using WebIO; using Interact; using IJulia' \
     ;fi \
  && jupyter lab build  \
+ && rm -rf /lab/.conda/share/jupyter/lab/staging/* \
  && rm -rf /tmp/* \
  && mkdir -p ${HOME}/.jupyter/lab/workspaces
 

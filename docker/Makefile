@@ -13,7 +13,7 @@ DEFAULT = jupy3rlab-gpu
 LAB = python3-base python3-base-gpu python3-gpu julia11-gpu jupyterlab-gpu jupy3rlab-gpu mongo-db mysql-db
 CPU = python3-base python3 julia11
 ALL = python3-base python3 julia11 jupyterlab python3-base-gpu python3-gpu julia11-gpu jupyterlab-gpu jupy3rlab-gpu mongo-db mysql-db
-PUBLIC = julia11 jupyterlab julia11-gpu jupy3rlab-gpu mongo-db mysql-db
+PUBLIC = julia11 jupyterlab julia11-gpu jupy3rlab-gpu mongo-db mysql-db pylab
 PYLAB = python3-base  python3 pylab
 
 all: update-all
