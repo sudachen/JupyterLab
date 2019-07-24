@@ -1,4 +1,4 @@
-FROM sudachen/jupyterlab:latest
+FROM sudachen/pylab:latest
 
 COPY --chown=lab:users jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
 COPY --chown=lab:users setup_kernel.py $HOME/.ipython/profile_default/startup/setup_kernel.py
